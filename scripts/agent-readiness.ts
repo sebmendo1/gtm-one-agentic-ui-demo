@@ -140,7 +140,7 @@ async function http(base: string) {
     ["canonical", /<link rel="canonical" href="[^"]+"/],
     ["og:type", /<meta property="og:type" content="website"/],
     ["og:image", /<meta property="og:image" content="[^"]+"/],
-    ["html lang", /<html lang="en"/],
+    ["html lang", /<html[^>]*\slang="en"/],
     ["Markdown alternate", /<link rel="alternate" type="text\/markdown" href="[^"]+"/],
   ] as const) {
     check(`HTTP / has ${label}`, re.test(page));
