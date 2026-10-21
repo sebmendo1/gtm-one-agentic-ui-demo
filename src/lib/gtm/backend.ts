@@ -29,8 +29,9 @@ export interface BackendChoice {
   detail: string;
 }
 
+/** The CLI signs in through a browser and stores its token under ~/.config, which a Vercel function never has. */
 export function dataSourceMode(): "auto" | "cli" | "fixtures" {
-  const mode = (process.env.GTM_DATA_SOURCE ?? "auto").toLowerCase();
+  const mode = (process.env.GTM_DATA_SOURCE ?? (process.env.VERCEL ? "fixtures" : "auto")).toLowerCase();
   return mode === "cli" || mode === "fixtures" ? mode : "auto";
 }
 

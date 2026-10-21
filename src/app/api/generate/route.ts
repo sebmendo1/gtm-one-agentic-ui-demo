@@ -114,7 +114,11 @@ export async function POST(request: Request): Promise<Response> {
   }
   if (!process.env.TYPESAFE_API_KEY) {
     return Response.json(
-      { error: "TYPESAFE_API_KEY is not set. Add it to .env.local and restart the dev server." },
+      {
+        error: process.env.VERCEL
+          ? "TYPESAFE_API_KEY is not set for this Vercel environment. Add it in Project Settings → Environment Variables and redeploy."
+          : "TYPESAFE_API_KEY is not set. Add it to .env.local and restart the dev server.",
+      },
       { status: 500 },
     );
   }

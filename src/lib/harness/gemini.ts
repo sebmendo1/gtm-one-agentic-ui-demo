@@ -57,7 +57,9 @@ export function geminiErrorText(error: unknown): string {
       : "Gemini rate limit or quota reached. Free-tier keys allow a few requests per minute and about 20 per model per day (one briefing uses 4–5). Wait and ask again, or enable billing at https://aistudio.google.com/usage.";
   }
   if (/API key|PERMISSION_DENIED|\b40[13]\b/i.test(message)) {
-    return "Gemini rejected GOOGLE_GENERATIVE_AI_API_KEY. Check the key in .env.local and restart npm run dev.";
+    return process.env.VERCEL
+      ? "Gemini rejected GOOGLE_GENERATIVE_AI_API_KEY. Check the key in Vercel Project Settings → Environment Variables and redeploy."
+      : "Gemini rejected GOOGLE_GENERATIVE_AI_API_KEY. Check the key in .env.local and restart npm run dev.";
   }
   return message.slice(0, 240);
 }
