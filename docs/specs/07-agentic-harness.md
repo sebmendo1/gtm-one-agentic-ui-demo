@@ -21,7 +21,7 @@ The client posts `{ description, clarifications, approval, context: { history, e
 1. **Classify**: Jev call 1 (spec 04). A clarification returns `needs_questions` with a one-line lead and the choices.
 2. **Prose path**: when `surface = prose`, `answer.ts` streams Markdown from [06-setup-gtm-ai.md](./06-setup-gtm-ai.md) and the command reference. No CLI calls, no components.
 3. **Reuse**: if the approval or `carry` verifies and is about the same subject, its evidence seeds the ledger. Steps it already answered are not run again, and their ids stay citable.
-4. **Plan**: the Gemini planner gets the conversation so far and the tools `cli_help` and `run_free_command`. Free commands execute immediately and land in the ledger. Its final structured output is the entity plus paid steps. Without a Gemini key, or if the planner fails, `defaultPlan(job, entity)` is used and skips free commands that already ran. The `draft` job never plans paid steps; it writes from evidence already gathered.
+4. **Plan**: before Gemini is called, code runs the default plan's free lookups (in parallel where they don't depend on each other's ids) and reads `--help` for every command in that plan. The Gemini planner then gets the conversation so far, those results, and the tools `cli_help` and `run_free_command` for anything still missing. Free commands execute immediately and land in the ledger. Its final structured output is the entity plus paid steps. Without a Gemini key, or if the planner fails, `defaultPlan(job, entity)` is used and skips free commands that already ran. The `draft` job never plans paid steps; it writes from evidence already gathered.
 5. **Match**: if the company search found records but none matches the name or domain exactly, return `needs_questions` with "Which company do you mean?" (spec 04) before anything is charged.
 6. **Gate**: if the plan has paid steps and the request carries no approval, return `needs_approval` with a conversational lead, each step's credit class, a labeled estimate, and the signed evidence gathered so far. The server **re-validates** every step against the allowlist; it never trusts client steps.
 7. **Execute**: approved paid steps run sequentially. Placeholders `{{companyId}}` / `{{contactId}}` resolve from earlier evidence. Declined steps are recorded as `denied` and never retried.
@@ -29,6 +29,15 @@ The client posts `{ description, clarifications, approval, context: { history, e
 9. **Decide UI**: Jev call 2 (`decideUi`) chooses purpose, mode, the main view, and how many views to show (spec 04 § Section budget), and maps topics and roles. The server emits a `frame`: bound data, placements, the composed-view slot, sources per component and per data root, and whether CRM drafts are allowed.
 10. **Write**: the Gemini writer streams Markdown from the evidence ledger, the frame, the job, purpose, history, and the spec 08 copy rules. Code strips unknown citations, validates any composed view (spec 03), and places any tag it skipped. If a composed view fails, its slot goes to the job's main component. Without Gemini, or on failure, a template reply in the same format is built from evidence and labeled as such.
 11. **Respond**: `ready` with the `message` (frame, Markdown, coverage, follow-ups, writer, signed `carry`) and the `trace` (Jev picks, the section counter, harness steps, coverage, token usage).
+
+## Latency
+
+A research turn should reach the approval card in under 10 seconds, and an approved turn should show its first words in under 3 seconds. Measure with `scripts/profile-turn.ts`, which times each stage and each Gemini request.
+
+- Every Gemini call sets `thinkingLevel: "low"`. Gemini 3 Flash otherwise thinks at full depth and sends nothing until it is done, which cost 10–50 seconds a turn. `gemini-3.8-flash` rejects `minimal`.
+- The planner's free lookups and help text come from code before the model is called (Turn loop step 4), so the planner usually needs one Gemini call instead of three to five.
+- The planner has a 25-second budget with one retry. Past that, the turn uses `defaultPlan`.
+- The writer and the prose answerer must start streaming within 15 seconds and can't stall for more than 10. Past either limit, the turn uses the evidence-only template.
 
 ## Evidence carry
 

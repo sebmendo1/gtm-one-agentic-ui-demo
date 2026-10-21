@@ -1,7 +1,7 @@
 import "server-only";
 import { streamText } from "ai";
 import type { HistoryEntry } from "../spec";
-import { GEMINI_PROVIDER_OPTIONS, SAFETY_BLOCKED, addUsage, geminiErrorText, geminiModel, type TokenTally } from "./gemini";
+import { GEMINI_PROVIDER_OPTIONS, SAFETY_BLOCKED, WRITER_TIMEOUT, addUsage, geminiErrorText, geminiModel, type TokenTally } from "./gemini";
 import { SCOPE_RULES } from "./guardrails";
 import { PLATFORM_RULES, knowledgeDocs } from "./knowledge";
 
@@ -30,6 +30,7 @@ export async function answerProse(input: {
       model: geminiModel(),
       temperature: 0.2,
       maxRetries: 1,
+      timeout: WRITER_TIMEOUT,
       providerOptions: GEMINI_PROVIDER_OPTIONS,
       instructions: [
         "You are GTM AI, a conversational assistant. You answer questions about ZoomInfo and GTM AI: the GTM platform and its products, Context Agents, Skills, the Context Graph, data and credits, installing the GTM CLI or ZoomInfo MCP, and how this chat app works.",

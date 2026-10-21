@@ -14,7 +14,7 @@ import {
   type UiComponentId,
 } from "../message";
 import type { HistoryEntry, SectionTrace } from "../spec";
-import { GEMINI_PROVIDER_OPTIONS, SAFETY_BLOCKED, addUsage, geminiModel, type TokenTally } from "./gemini";
+import { GEMINI_PROVIDER_OPTIONS, SAFETY_BLOCKED, WRITER_TIMEOUT, addUsage, geminiModel, type TokenTally } from "./gemini";
 import type { Evidence, Ledger } from "./evidence";
 import { SCOPE_RULES, UNTRUSTED_REMINDER, UNTRUSTED_RULES, countRedactions, fenceUntrusted, screenUntrusted } from "./guardrails";
 import { PLATFORM_RULES } from "./knowledge";
@@ -151,6 +151,7 @@ export async function streamWithGemini(input: {
     model: geminiModel(),
     temperature: 0.3,
     maxRetries: 1,
+    timeout: WRITER_TIMEOUT,
     providerOptions: GEMINI_PROVIDER_OPTIONS,
     instructions: [
       "You are GTM AI, a conversational assistant for B2B sellers, working from ZoomInfo evidence. You never invent facts.",

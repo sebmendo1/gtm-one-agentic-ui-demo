@@ -11,7 +11,7 @@ import { google } from "@ai-sdk/google";
 // `npm run dev` after editing `.env.local`. Without a key the harness still runs:
 // it uses the default tool plan and a template briefing (labeled in the UI).
 // Free-tier keys allow about 20 requests per model per day and a briefing uses
-// 4–5 (planner steps + writer); past that the same fallbacks apply.
+// 2–3 (usually one planner call + writer); past that the same fallbacks apply.
 // ──────────────────────────────────────────────────────────────────────────────
 
 export const DEFAULT_GEMINI_MODEL = "gemini-3.8-flash";
@@ -37,11 +37,18 @@ const HARM_CATEGORIES = [
   "HARM_CATEGORY_DANGEROUS_CONTENT",
 ] as const;
 
+// Gemini 3 Flash thinks at full depth unless told otherwise and sends nothing until it is done, which
+// cost 10–50 s per turn. `low` is the shallowest level gemini-3.8-flash accepts ("minimal" is a 400).
 export const GEMINI_PROVIDER_OPTIONS = {
   google: {
     safetySettings: HARM_CATEGORIES.map((category) => ({ category, threshold: "BLOCK_MEDIUM_AND_ABOVE" as const })),
+    thinkingConfig: { thinkingLevel: "low" as const },
   },
 };
+
+/** Latency budgets (docs/specs/07-agentic-harness.md): past these the turn uses its fallback. */
+export const PLANNER_TIMEOUT = { totalMs: 25_000 };
+export const WRITER_TIMEOUT = { firstChunkMs: 15_000, chunkMs: 10_000 };
 
 export const SAFETY_BLOCKED = "Gemini safety filter blocked the request.";
 
@@ -53,8 +60,8 @@ export function geminiErrorText(error: unknown): string {
   if (/quota|rate.?limit|RESOURCE_EXHAUSTED|\b429\b/i.test(message)) {
     const daily = /PerDay/i.test(message) || /per day/i.test(message);
     return daily
-      ? "Gemini daily free-tier quota reached for this model (about 20 requests per day; one briefing uses 4–5). Try again tomorrow, set GEMINI_MODEL to another Flash model, or enable billing at https://aistudio.google.com/usage."
-      : "Gemini rate limit or quota reached. Free-tier keys allow a few requests per minute and about 20 per model per day (one briefing uses 4–5). Wait and ask again, or enable billing at https://aistudio.google.com/usage.";
+      ? "Gemini daily free-tier quota reached for this model (about 20 requests per day; one briefing uses 2–3). Try again tomorrow, set GEMINI_MODEL to another Flash model, or enable billing at https://aistudio.google.com/usage."
+      : "Gemini rate limit or quota reached. Free-tier keys allow a few requests per minute and about 20 per model per day (one briefing uses 2–3). Wait and ask again, or enable billing at https://aistudio.google.com/usage.";
   }
   if (/API key|PERMISSION_DENIED|\b40[13]\b/i.test(message)) {
     return process.env.VERCEL
