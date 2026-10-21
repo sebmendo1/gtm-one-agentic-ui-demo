@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
       "./docs/specs/08-zoominfo-gtm-platform.md",
       "./docs/external-sources/zoominfo-gtm-ai-knowledge-base.md",
     ],
+    "/opengraph-image": ["./assets/*.ttf"],
   },
 };
 

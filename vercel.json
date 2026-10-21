@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "routes": [
+    {
+      "src": "^/$",
+      "continue": true,
+      "transforms": [
+        { "type": "response.headers", "op": "delete", "target": { "key": "vary" }, "args": "Accept" },
+        { "type": "response.headers", "op": "append", "target": { "key": "vary" }, "args": "Accept" }
+      ]
+    }
+  ]
+}

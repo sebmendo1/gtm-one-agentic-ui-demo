@@ -9,6 +9,7 @@
     "lint": "eslint",
     "gtm": "gtm",
     "smoke:gemini": "tsx --env-file=.env.local --conditions=react-server scripts/smoke-gemini-mock.ts",
+    "test:agents": "tsx scripts/agent-readiness.ts",
     "eval:genui": "tsx --env-file=.env.local --conditions=react-server scripts/genui-sections.ts"
   },
   "dependencies": {

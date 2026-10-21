@@ -3,6 +3,7 @@ import { Figtree, JetBrains_Mono } from "next/font/google";
 import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
 import { AppThemeProvider, MODE_STORAGE_KEY } from "@/components/theme/AppThemeProvider";
+import { SITE, siteJsonLd } from "@/lib/site";
 import "./globals.css";
 
 const figtree = Figtree({
@@ -17,14 +18,22 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GTM AI Chat",
-  description: "GTM AI chat — Gemini researches with the GTM CLI, Jev decides when and which interactive components to show.",
+  metadataBase: new URL(SITE.url),
+  title: SITE.title,
+  description: SITE.description,
+  applicationName: SITE.name,
+  alternates: { canonical: "/", types: { "text/markdown": "/index.md" } },
+  openGraph: { type: "website", url: "/", siteName: SITE.name, title: SITE.title, description: SITE.description, locale: "en_US" },
+  twitter: { card: "summary_large_image", title: SITE.title, description: SITE.description },
 };
+
+const JSON_LD = JSON.stringify(siteJsonLd()).replace(/</g, "\\u003c");
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" suppressHydrationWarning className={`h-full antialiased ${figtree.variable} ${jetbrainsMono.variable}`}>
       <body className="flex min-h-full flex-col">
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON_LD }} />
         <InitColorSchemeScript attribute="class" defaultMode="light" modeStorageKey={MODE_STORAGE_KEY} />
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
           <AppThemeProvider>{children}</AppThemeProvider>
