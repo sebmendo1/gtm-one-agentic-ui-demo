@@ -1,69 +1,215 @@
-import Image from "next/image";
+"use client";
+
+import { Fab, IconButton, Tooltip, Zoom } from "@mui/material";
+import ApartmentOutlinedIcon from "@mui/icons-material/ApartmentOutlined";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import BoltOutlinedIcon from "@mui/icons-material/BoltOutlined";
+import BusinessCenterOutlinedIcon from "@mui/icons-material/BusinessCenterOutlined";
+import Groups2OutlinedIcon from "@mui/icons-material/Groups2Outlined";
+import MailOutlineIcon from "@mui/icons-material/MailOutlined";
+import MemoryOutlinedIcon from "@mui/icons-material/MemoryOutlined";
+import SpeedOutlinedIcon from "@mui/icons-material/SpeedOutlined";
+import TerminalOutlinedIcon from "@mui/icons-material/TerminalOutlined";
+import ViewSidebarOutlinedIcon from "@mui/icons-material/ViewSidebarOutlined";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { AssistantTurn, UserBubble } from "@/components/chat/AssistantTurn";
+import { Composer } from "@/components/chat/Composer";
+import { ChatActionsContext } from "@/components/chat/context";
+import { BrandMark, Sidebar } from "@/components/chat/Sidebar";
+import { useChat } from "@/components/chat/useChat";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
+
+const EXAMPLES: { label: string; hint: string; prompt: string; icon: ReactNode }[] = [
+  {
+    label: "Brief me on Snowflake",
+    hint: "Before a QBR — intent, scoops, next action",
+    prompt: "Account research brief for Snowflake before a pre-call QBR — intent, scoops, and next action",
+    icon: <ApartmentOutlinedIcon fontSize="small" />,
+  },
+  {
+    label: "Who's in the deal at Stripe?",
+    hint: "Buying committee and multithread risk",
+    prompt: "Buying committee map at Stripe — who is engaged and multithread risk",
+    icon: <Groups2OutlinedIcon fontSize="small" />,
+  },
+  {
+    label: "Why reach out to Stripe now?",
+    hint: "Timing thesis with outreach hooks",
+    prompt: "Why now case for reaching out to Stripe this week with timing hooks",
+    icon: <BoltOutlinedIcon fontSize="small" />,
+  },
+  {
+    label: "Score Snowflake",
+    hint: "ICP fit and in-market, explained",
+    prompt: "Score accounts — tier Snowflake by ICP fit and in-market signals",
+    icon: <SpeedOutlinedIcon fontSize="small" />,
+  },
+  {
+    label: "Snowflake's tech stack",
+    hint: "Technographics and displacement plays",
+    prompt: "Tech stack snapshot for Snowflake with displacement plays",
+    icon: <MemoryOutlinedIcon fontSize="small" />,
+  },
+  {
+    label: "Us vs Gong at Snowflake",
+    hint: "Competitive comparison",
+    prompt: "Compare us vs Gong at Snowflake for a competitive deal",
+    icon: <BusinessCenterOutlinedIcon fontSize="small" />,
+  },
+  {
+    label: "Email Jordan Lee",
+    hint: "A first email from what we know",
+    prompt: "Draft a short first email to Jordan Lee at Snowflake",
+    icon: <MailOutlineIcon fontSize="small" />,
+  },
+  {
+    label: "Connect live data",
+    hint: "Sign in to the bundled GTM CLI",
+    prompt: "How do I sign in to the GTM CLI so this app uses live ZoomInfo data?",
+    icon: <TerminalOutlinedIcon fontSize="small" />,
+  },
+];
 
 export default function Home() {
+  const chat = useChat();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [atBottom, setAtBottom] = useState(true);
+  const turns = chat.active?.turns ?? [];
+  const lastTurn = turns.at(-1);
+  const scrollKey = `${chat.activeId}:${turns.length}:${lastTurn?.status}:${lastTurn?.draft.length ?? 0}:${lastTurn?.activity.steps.length ?? 0}`;
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el && atBottom) el.scrollTo({ top: el.scrollHeight });
+  }, [scrollKey, atBottom]);
+
+  const closeOnMobile = () => {
+    if (window.innerWidth < 768) setSidebarOpen(false);
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <ChatActionsContext.Provider value={{ send: chat.send, busy: chat.busy }}>
+      <main className="flex h-dvh overflow-hidden bg-gtm-bg">
+        {sidebarOpen && (
+          <>
+            <button type="button" aria-label="Close sidebar" className="fixed inset-0 z-20 bg-black/30 md:hidden" onClick={() => setSidebarOpen(false)} />
+            <div className="z-30 h-full max-md:fixed max-md:inset-y-0 max-md:left-0">
+              <Sidebar
+                conversations={chat.conversations}
+                activeId={chat.activeId}
+                onOpen={(id) => {
+                  chat.setActiveId(id);
+                  setAtBottom(true);
+                  closeOnMobile();
+                }}
+                onNew={() => {
+                  chat.setActiveId(null);
+                  closeOnMobile();
+                }}
+                onRemove={chat.remove}
+                onClose={() => setSidebarOpen(false)}
+              />
+            </div>
+          </>
+        )}
+
+        <section className="relative flex min-w-0 flex-1 flex-col">
+          <header className="flex h-14 shrink-0 items-center gap-2 px-3">
+            {!sidebarOpen && (
+              <>
+                <Tooltip title="Open sidebar">
+                  <IconButton size="small" aria-label="Open sidebar" onClick={() => setSidebarOpen(true)}>
+                    <ViewSidebarOutlinedIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <BrandMark />
+              </>
+            )}
+            <p className="min-w-0 truncate px-1 text-sm font-medium text-gtm-secondary">{chat.active?.title ?? ""}</p>
+            <div className="ml-auto">
+              <ThemeToggle />
+            </div>
+          </header>
+
+          {turns.length === 0 ? (
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+              <div className="m-auto flex w-full max-w-3xl flex-col items-center px-4 py-10">
+                <h1 className="mb-2 text-center text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+                  What GTM decision do you need?
+                </h1>
+                <p className="mb-8 max-w-lg text-center text-body text-gtm-secondary">
+                  Ask in plain words. I research with the GTM CLI, ask before spending credits, and show cards, tables, and
+                  scores only when they help.
+                </p>
+                <Composer busy={chat.busy} onSend={chat.send} autoFocus />
+                <div className="mt-6 grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
+                  {EXAMPLES.map((example) => (
+                    <button
+                      key={example.label}
+                      type="button"
+                      disabled={chat.busy}
+                      onClick={() => chat.send(example.prompt)}
+                      className="flex items-start gap-3 rounded-gtm-xl border border-gtm-border bg-gtm-surface px-4 py-3 text-left transition-colors hover:bg-gtm-subtle disabled:opacity-50"
+                    >
+                      <span className="mt-0.5 flex text-gtm-secondary">{example.icon}</span>
+                      <span className="min-w-0">
+                        <span className="block text-sm font-medium">{example.label}</span>
+                        <span className="block truncate text-meta text-gtm-muted">{example.hint}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div
+                ref={scrollRef}
+                className="min-h-0 flex-1 overflow-y-auto"
+                onScroll={(e) => {
+                  const el = e.currentTarget;
+                  setAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 80);
+                }}
+              >
+                <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-4 pb-10">
+                  {turns.map((turn) => (
+                    <div key={turn.id} className="flex flex-col gap-5">
+                      <UserBubble text={turn.prompt} />
+                      <AssistantTurn
+                        turn={turn}
+                        busy={chat.busy}
+                        onAnswer={(q, o) => chat.active && chat.answerQuestion(chat.active.id, turn, q, o)}
+                        onDecide={(d) => chat.active && chat.decide(chat.active.id, turn, d)}
+                        onRetry={() => chat.send(turn.prompt)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <Zoom in={!atBottom}>
+                <Fab
+                  size="small"
+                  aria-label="Scroll to bottom"
+                  onClick={() => {
+                    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+                    setAtBottom(true);
+                  }}
+                  className="absolute bottom-28 left-1/2 -translate-x-1/2 border border-gtm-border bg-gtm-surface text-gtm-text shadow-sm hover:bg-gtm-subtle"
+                >
+                  <ArrowDownwardIcon fontSize="small" />
+                </Fab>
+              </Zoom>
+              <div className="mx-auto w-full max-w-3xl shrink-0 px-4 pb-3">
+                <Composer busy={chat.busy} onSend={chat.send} />
+                <p className="mt-2 text-center text-caption text-gtm-muted">
+                  Replies cite GTM CLI evidence. Paid research always asks first.
+                </p>
+              </div>
+            </>
+          )}
+        </section>
       </main>
-    </div>
+    </ChatActionsContext.Provider>
   );
 }

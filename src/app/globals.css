@@ -1,26 +1,204 @@
+@layer theme, base, mui, components, utilities;
 @import "tailwindcss";
 
+/* `.dark` is set on <html> by MUI's color scheme (class selector) — see AppThemeProvider. */
+@custom-variant dark (&:is(.dark *));
+
+/* GTM.ai brand tokens (docs/specs/02-design-system.md). Light is the default. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --gtm-bg: #ffffff;
+  --gtm-bg-secondary: #f8f9ff;
+  --gtm-surface: #ffffff;
+  --gtm-surface-secondary: #f3f4f6;
+  --gtm-subtle: #f3f4f6;
+  --gtm-border: #e5e7eb;
+  --gtm-text: #111827;
+  --gtm-text-secondary: #4b5563;
+  --gtm-text-muted: #6b7280;
+  --gtm-cta: #df201a;
+  --gtm-cta-hover: #ea1b15;
+  --gtm-accent: #ff3333;
+  --gtm-emphasis: #c9211b;
+  --gtm-success: #10b981;
+  --gtm-warning: #f59e0b;
+  --gtm-radius-lg: 8px;
+  --gtm-radius-xl: 12px;
+}
+
+.dark {
+  color-scheme: dark;
+  --gtm-bg: #000000;
+  --gtm-bg-secondary: #0d0d12;
+  --gtm-surface: #000000;
+  --gtm-surface-secondary: #0d0d12;
+  --gtm-subtle: #1c1c25;
+  --gtm-border: #3c3c4a;
+  --gtm-text: #ffffff;
+  --gtm-text-secondary: #d0d0de;
+  --gtm-text-muted: #a0a0b0;
+  --gtm-emphasis: #ff786c;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-gtm-bg: var(--gtm-bg);
+  --color-gtm-bg-secondary: var(--gtm-bg-secondary);
+  --color-gtm-surface: var(--gtm-surface);
+  --color-gtm-subtle: var(--gtm-subtle);
+  --color-gtm-border: var(--gtm-border);
+  --color-gtm-text: var(--gtm-text);
+  --color-gtm-secondary: var(--gtm-text-secondary);
+  --color-gtm-muted: var(--gtm-text-muted);
+  --color-gtm-cta: var(--gtm-cta);
+  --color-gtm-cta-hover: var(--gtm-cta-hover);
+  --color-gtm-accent: var(--gtm-accent);
+  --color-gtm-emphasis: var(--gtm-emphasis);
+  --color-gtm-success: var(--gtm-success);
+  --color-gtm-warning: var(--gtm-warning);
+  --radius-gtm: var(--gtm-radius-lg);
+  --radius-gtm-xl: var(--gtm-radius-xl);
+  /* Type scale (docs/specs/02-design-system.md § Type): caption 11 · xs 12 · meta 13 · sm 14 · body 15. */
+  --text-caption: 11px;
+  --text-caption--line-height: 16px;
+  --text-meta: 13px;
+  --text-meta--line-height: 20px;
+  --text-body: 15px;
+  --text-body--line-height: 1.7;
+  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --font-gtm-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    @apply border-gtm-border;
+  }
+  html,
+  body {
+    @apply bg-gtm-bg font-sans text-gtm-text;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* Mono eyebrow used above component titles. */
+  .gtm-eyebrow {
+    font-family: var(--font-jetbrains-mono), monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gtm-text-muted);
+  }
+
+  /* Markdown inside assistant messages. */
+  .gtm-prose {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--gtm-text);
+  }
+  .gtm-prose > * + * {
+    margin-top: 0.75em;
+  }
+  .gtm-prose h1,
+  .gtm-prose h2,
+  .gtm-prose h3 {
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-top: 1.25em;
+  }
+  .gtm-prose h3 {
+    font-size: 1.05rem;
+  }
+  .gtm-prose ul,
+  .gtm-prose ol {
+    padding-left: 1.4em;
+  }
+  .gtm-prose ul {
+    list-style: disc;
+  }
+  .gtm-prose ol {
+    list-style: decimal;
+  }
+  .gtm-prose li + li {
+    margin-top: 0.3em;
+  }
+  .gtm-prose li::marker {
+    color: var(--gtm-text-muted);
+  }
+  .gtm-prose strong {
+    font-weight: 600;
+  }
+  .gtm-prose a:not([data-cite]) {
+    color: var(--gtm-emphasis);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .gtm-prose :not(pre) > code {
+    font-family: var(--font-jetbrains-mono), monospace;
+    font-size: 0.85em;
+    padding: 0.1em 0.35em;
+    border-radius: 6px;
+    background: var(--gtm-surface-secondary);
+    border: 1px solid var(--gtm-border);
+  }
+  .gtm-prose pre {
+    font-family: var(--font-jetbrains-mono), monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 12px 14px;
+    border-radius: var(--gtm-radius-xl);
+    background: var(--gtm-surface-secondary);
+    border: 1px solid var(--gtm-border);
+    overflow-x: auto;
+  }
+  .gtm-prose blockquote {
+    border-left: 3px solid var(--gtm-border);
+    padding-left: 12px;
+    color: var(--gtm-text-secondary);
+  }
+  .gtm-prose hr {
+    border-color: var(--gtm-border);
+  }
+
+  @keyframes gtm-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .gtm-enter {
+    animation: gtm-fade-in 0.42s ease-out both;
+  }
+
+  @keyframes gtm-shimmer {
+    from {
+      background-position: 100% 0;
+    }
+    to {
+      background-position: 0 0;
+    }
+  }
+
+  .gtm-shimmer {
+    background: linear-gradient(90deg, var(--gtm-text-muted) 35%, var(--gtm-text) 50%, var(--gtm-text-muted) 65%) 0 0 / 300% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation:
+      gtm-fade-in 0.42s ease-out both,
+      gtm-shimmer 1.8s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .gtm-enter,
+    .gtm-shimmer {
+      animation: none;
+    }
+    .gtm-shimmer {
+      color: var(--gtm-text-muted);
+    }
+  }
 }
