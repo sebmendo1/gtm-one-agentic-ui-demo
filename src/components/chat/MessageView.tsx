@@ -42,16 +42,24 @@ export function MessageFooter({ message, onRetry }: { message: AssistantMessage;
       <div className="mt-3 flex flex-col gap-3">
         {(cited.length > 0 || message.coverage.length > 0) && (
           <details className="group rounded-gtm-xl border border-gtm-border px-3 py-2 text-meta">
-            <summary className="flex cursor-pointer list-none items-center gap-2 text-gtm-secondary">
-              <span className="font-medium">Sources & coverage</span>
-              <span className="flex flex-wrap gap-0.5">
+            <summary className="flex min-h-6 cursor-pointer list-none items-center gap-2 text-gtm-secondary pointer-coarse:min-h-8">
+              <span className="shrink-0 font-medium whitespace-nowrap">Sources & coverage</span>
+              {cited.length > 0 && <span className="text-gtm-muted sm:hidden">· {cited.length}</span>}
+              <span className="flex min-w-0 flex-wrap gap-0.5 max-sm:hidden">
                 {cited.slice(0, 4).map((id) => (
                   <Cite key={id} ids={[id]} />
                 ))}
               </span>
-              <span className="ml-auto text-gtm-muted group-open:rotate-180">⌄</span>
+              <span className="ml-auto shrink-0 text-gtm-muted group-open:rotate-180">⌄</span>
             </summary>
-            <ul className="mt-2 flex flex-col gap-1 text-gtm-secondary">
+            {cited.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1 sm:hidden">
+                {cited.map((id) => (
+                  <Cite key={id} ids={[id]} />
+                ))}
+              </div>
+            )}
+            <ul className="mt-2 flex flex-col gap-1 break-words text-gtm-secondary">
               {message.coverage.map((line) => (
                 <li key={line}>{line}</li>
               ))}

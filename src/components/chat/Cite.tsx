@@ -16,7 +16,7 @@ export function Cite({ ids }: { ids: string[] }) {
   const sources = frame?.sources ?? {};
   const title = clean.map((id) => `${id} · ${sources[id] ?? "evidence"}`).join("\n");
   return (
-    <Tooltip title={<span className="whitespace-pre-line">{title}</span>} arrow>
+    <Tooltip title={<span className="whitespace-pre-line">{title}</span>} arrow enterTouchDelay={0} leaveTouchDelay={4000}>
       <Chip
         component="span"
         size="small"

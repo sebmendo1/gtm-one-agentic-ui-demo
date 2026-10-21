@@ -44,28 +44,28 @@ export function ApprovalPrompt({
   return (
     <Card className="gtm-enter my-3 border-gtm-emphasis/50">
       <CardContent className="p-4 last:pb-4">
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1">
           <ShieldOutlinedIcon fontSize="small" className="text-gtm-emphasis" />
           <span className="font-semibold">Approve paid research?</span>
-          <span className="ml-auto text-xs text-gtm-muted">
+          <span className="text-xs text-gtm-muted max-sm:w-full max-sm:pl-7 sm:ml-auto">
             Planned by {request.planner.kind === "gemini" ? `Gemini` : "the default plan"}
           </span>
         </div>
         <ul className="flex flex-col gap-2">
           {paid.map((step) => (
             <li key={step.display} className="flex items-center justify-between gap-3 rounded-gtm bg-gtm-subtle px-3 py-2">
-              <span className="text-sm">{step.reason || step.command}</span>
+              <span className="min-w-0 text-sm">{step.reason || step.command}</span>
               <Chip size="small" variant="outlined" color={COST[step.cost].color} label={step.estimate || COST[step.cost].label} className="shrink-0" />
             </li>
           ))}
         </ul>
-        <button type="button" onClick={() => setShowCommands((s) => !s)} className="mt-2 text-xs text-gtm-muted underline-offset-2 hover:underline">
+        <button type="button" onClick={() => setShowCommands((s) => !s)} className="mt-1 py-1 text-xs text-gtm-muted underline-offset-2 hover:underline pointer-coarse:py-2">
           {showCommands ? "Hide" : "Show"} exact commands
         </button>
         <Collapse in={showCommands}>
           <div className="mt-1 flex flex-col gap-1">
             {request.steps.map((step) => (
-              <code key={step.display} className="block truncate font-gtm-mono text-caption text-gtm-muted" title={step.display}>
+              <code key={step.display} className="block font-gtm-mono text-caption break-all text-gtm-muted sm:truncate" title={step.display}>
                 {step.executed ? "✓ " : "• "}
                 {step.display}
               </code>
@@ -75,10 +75,10 @@ export function ApprovalPrompt({
         <p className="mt-3 text-sm">{request.estimate}</p>
         <p className="mt-1 text-xs text-gtm-muted">{request.note}</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button variant="contained" disabled={disabled} onClick={() => onDecide("approved")} className="rounded-full">
+          <Button variant="contained" disabled={disabled} onClick={() => onDecide("approved")} className="rounded-full whitespace-nowrap max-sm:flex-1">
             Approve and run
           </Button>
-          <Button variant="outlined" color="inherit" disabled={disabled} onClick={() => onDecide("declined")} className="rounded-full border-gtm-border">
+          <Button variant="outlined" color="inherit" disabled={disabled} onClick={() => onDecide("declined")} className="rounded-full border-gtm-border whitespace-nowrap max-sm:flex-1">
             Skip paid steps
           </Button>
         </div>

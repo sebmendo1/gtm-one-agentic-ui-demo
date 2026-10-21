@@ -10,7 +10,7 @@ import type { Turn } from "./useChat";
 export function UserBubble({ text }: { text: string }) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-[85%] rounded-3xl bg-gtm-subtle px-4 py-3 text-body leading-relaxed whitespace-pre-wrap">{text}</div>
+      <div className="max-w-[85%] rounded-3xl bg-gtm-subtle px-4 py-3 text-body leading-relaxed break-words whitespace-pre-wrap">{text}</div>
     </div>
   );
 }

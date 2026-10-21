@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Figtree, JetBrains_Mono } from "next/font/google";
 import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
@@ -25,6 +25,19 @@ export const metadata: Metadata = {
   alternates: { canonical: "/", types: { "text/markdown": "/index.md" } },
   openGraph: { type: "website", url: "/", siteName: SITE.name, title: SITE.title, description: SITE.description, locale: "en_US" },
   twitter: { card: "summary_large_image", title: SITE.title, description: SITE.description },
+};
+
+// `cover` lets the shell pad itself with safe-area insets; `resizes-content` keeps the composer above
+// the on-screen keyboard where browsers support it.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  interactiveWidget: "resizes-content",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+  ],
 };
 
 const JSON_LD = JSON.stringify(siteJsonLd()).replace(/</g, "\\u003c");

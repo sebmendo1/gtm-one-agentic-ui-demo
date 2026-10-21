@@ -72,7 +72,8 @@ const EXAMPLES: { label: string; hint: string; prompt: string; icon: ReactNode }
 
 export default function Home() {
   const chat = useChat();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // null = not chosen yet: CSS shows the sidebar from md up and hides it on phones, so nothing flashes on load.
+  const [sidebarOpen, setSidebarOpen] = useState<boolean | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
   const turns = chat.active?.turns ?? [];
@@ -87,14 +88,20 @@ export default function Home() {
   const closeOnMobile = () => {
     if (window.innerWidth < 768) setSidebarOpen(false);
   };
+  const openToggle = sidebarOpen === null ? "md:hidden" : sidebarOpen ? "hidden" : "";
 
   return (
     <ChatActionsContext.Provider value={{ send: chat.send, busy: chat.busy }}>
-      <main className="flex h-dvh overflow-hidden bg-gtm-bg">
-        {sidebarOpen && (
+      <main className="flex h-dvh overflow-hidden bg-gtm-bg pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">
+        {sidebarOpen !== false && (
           <>
-            <button type="button" aria-label="Close sidebar" className="fixed inset-0 z-20 bg-black/30 md:hidden" onClick={() => setSidebarOpen(false)} />
-            <div className="z-30 h-full max-md:fixed max-md:inset-y-0 max-md:left-0">
+            {sidebarOpen && (
+              <button type="button" aria-label="Close sidebar" className="fixed inset-0 z-20 bg-black/30 md:hidden" onClick={() => setSidebarOpen(false)} />
+            )}
+            <div
+              className={`z-30 h-full max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:pl-[env(safe-area-inset-left)] max-md:shadow-xl ${sidebarOpen === null ? "max-md:hidden" : ""}`}
+              onKeyDown={(e) => e.key === "Escape" && closeOnMobile()}
+            >
               <Sidebar
                 conversations={chat.conversations}
                 activeId={chat.activeId}
@@ -115,64 +122,72 @@ export default function Home() {
         )}
 
         <section className="relative flex min-w-0 flex-1 flex-col">
-          <header className="flex h-14 shrink-0 items-center gap-2 px-3">
-            {!sidebarOpen && (
-              <>
-                <Tooltip title="Open sidebar">
-                  <IconButton size="small" aria-label="Open sidebar" onClick={() => setSidebarOpen(true)}>
-                    <ViewSidebarOutlinedIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+          <header className="flex h-14 shrink-0 items-center gap-2 px-2 pt-[env(safe-area-inset-top)] box-content sm:px-3">
+            <div className={`flex shrink-0 items-center gap-2 ${openToggle}`}>
+              <Tooltip title="Open sidebar">
+                <IconButton size="small" aria-label="Open sidebar" onClick={() => setSidebarOpen(true)}>
+                  <ViewSidebarOutlinedIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <span className={chat.active ? "max-sm:hidden" : ""}>
                 <BrandMark />
-              </>
-            )}
-            <p className="min-w-0 truncate px-1 text-sm font-medium text-gtm-secondary">{chat.active?.title ?? ""}</p>
-            <div className="ml-auto">
+              </span>
+            </div>
+            <p className="min-w-0 flex-1 truncate px-1 text-sm font-medium text-gtm-secondary">{chat.active?.title ?? ""}</p>
+            <div className="shrink-0">
               <ThemeToggle />
             </div>
           </header>
 
           {turns.length === 0 ? (
-            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-              <div className="m-auto flex w-full max-w-3xl flex-col items-center px-4 py-10">
-                <h1 className="mb-2 text-center text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-                  What GTM decision do you need?
-                </h1>
-                <p className="mb-8 max-w-lg text-center text-body text-gtm-secondary">
-                  Ask in plain words. I research with the GTM CLI, ask before spending credits, and show cards, tables, and
-                  scores only when they help.
-                </p>
-                <Composer busy={chat.busy} onSend={chat.send} autoFocus />
-                <div className="mt-6 grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
-                  {EXAMPLES.map((example) => (
-                    <button
-                      key={example.label}
-                      type="button"
-                      disabled={chat.busy}
-                      onClick={() => chat.send(example.prompt)}
-                      className="flex items-start gap-3 rounded-gtm-xl border border-gtm-border bg-gtm-surface px-4 py-3 text-left transition-colors hover:bg-gtm-subtle disabled:opacity-50"
-                    >
-                      <span className="mt-0.5 flex text-gtm-secondary">{example.icon}</span>
-                      <span className="min-w-0">
-                        <span className="block text-sm font-medium">{example.label}</span>
-                        <span className="block truncate text-meta text-gtm-muted">{example.hint}</span>
-                      </span>
-                    </button>
-                  ))}
+            <>
+              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
+                <div className="m-auto flex w-full max-w-3xl flex-col items-center px-4 py-6 sm:py-10">
+                  <h1 className="mb-2 text-center text-2xl font-semibold tracking-tight text-balance sm:text-4xl">
+                    What GTM decision do you need?
+                  </h1>
+                  <p className="mb-6 max-w-lg text-center text-sm text-pretty text-gtm-secondary sm:mb-8 sm:text-body">
+                    Ask in plain words. I research with the GTM CLI, ask before spending credits, and show cards, tables, and
+                    scores only when they help.
+                  </p>
+                  {/* Phones type in the bottom composer instead, where the thumb is and where it stays once the chat starts. */}
+                  <div className="hidden w-full sm:block">
+                    <Composer busy={chat.busy} onSend={chat.send} autoFocus />
+                  </div>
+                  <div className="grid w-full grid-cols-1 gap-2 sm:mt-6 sm:grid-cols-2">
+                    {EXAMPLES.map((example, i) => (
+                      <button
+                        key={example.label}
+                        type="button"
+                        disabled={chat.busy}
+                        onClick={() => chat.send(example.prompt)}
+                        className={`flex items-start gap-3 rounded-gtm-xl border border-gtm-border bg-gtm-surface px-4 py-3 text-left transition-colors hover:bg-gtm-subtle active:bg-gtm-subtle disabled:opacity-50 ${i >= 4 ? "max-sm:hidden" : ""}`}
+                      >
+                        <span className="mt-0.5 flex text-gtm-secondary">{example.icon}</span>
+                        <span className="min-w-0">
+                          <span className="block text-sm font-medium">{example.label}</span>
+                          <span className="block text-meta text-gtm-muted sm:truncate">{example.hint}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+              <div className="mx-auto w-full max-w-3xl shrink-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:hidden">
+                <Composer busy={chat.busy} onSend={chat.send} />
+              </div>
+            </>
           ) : (
             <>
               <div
                 ref={scrollRef}
-                className="min-h-0 flex-1 overflow-y-auto"
+                className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
                 onScroll={(e) => {
                   const el = e.currentTarget;
                   setAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 80);
                 }}
               >
-                <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-4 pb-10">
+                <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-2 pb-10 sm:pt-4">
                   {turns.map((turn) => (
                     <div key={turn.id} className="flex flex-col gap-5">
                       <UserBubble text={turn.prompt} />
@@ -200,9 +215,9 @@ export default function Home() {
                   <ArrowDownwardIcon fontSize="small" />
                 </Fab>
               </Zoom>
-              <div className="mx-auto w-full max-w-3xl shrink-0 px-4 pb-3">
+              <div className="mx-auto w-full max-w-3xl shrink-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4">
                 <Composer busy={chat.busy} onSend={chat.send} />
-                <p className="mt-2 text-center text-caption text-gtm-muted">
+                <p className="mt-2 text-center text-caption text-gtm-muted max-sm:hidden">
                   Replies cite GTM CLI evidence. Paid research always asks first.
                 </p>
               </div>

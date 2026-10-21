@@ -107,7 +107,7 @@ export function Activity({ activity, trace, live }: { activity: ActivityState; t
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 rounded-full py-1 pr-2 text-meta text-gtm-muted transition-colors hover:text-gtm-text"
+        className="flex items-center gap-2 rounded-full py-1 pr-2 text-left text-meta text-gtm-muted transition-colors hover:text-gtm-text pointer-coarse:py-2"
         aria-expanded={open}
       >
         {live ? <CircularProgress size={12} thickness={6} color="inherit" /> : null}
@@ -124,7 +124,7 @@ export function Activity({ activity, trace, live }: { activity: ActivityState; t
         <ExpandMoreIcon sx={{ fontSize: 16 }} className={`transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       <Collapse in={open}>
-        <div className="mt-1 ml-2 flex flex-col gap-3 border-l border-gtm-border py-1 pl-4 text-meta">
+        <div className="mt-1 ml-2 flex flex-col gap-3 border-l border-gtm-border py-1 pl-3 text-meta break-words sm:pl-4">
           {activity.labels.length > 0 && (
             <ul className="flex flex-col gap-0.5 text-gtm-secondary">
               {activity.labels.map((label, i) => (
@@ -150,7 +150,7 @@ export function Activity({ activity, trace, live }: { activity: ActivityState; t
                         s.cost !== "free" && <Chip size="small" label={s.cost === "ai" ? "AI credits" : "Data credits"} variant="outlined" className="h-4 text-caption" />
                       )}
                     </div>
-                    <code className="block truncate font-gtm-mono text-caption text-gtm-muted" title={s.display}>
+                    <code className="block font-gtm-mono text-caption break-all text-gtm-muted sm:truncate" title={s.display}>
                       {s.display}
                     </code>
                     {s.error && <div className="text-xs text-gtm-muted">{s.error}</div>}

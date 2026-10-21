@@ -24,10 +24,9 @@ import { isTrustedHref } from "@/lib/safe-links";
 import { copyText, useChatActions, useFrame } from "./context";
 import { WidgetCard } from "./widgets/WidgetCard";
 
-// Static class maps so Tailwind sees every class: spacing follows the 4px scale (SPACE_STEPS).
+// Static class maps so Tailwind sees every class: spacing follows the 4px scale (SPACE_STEPS); grid columns are computed.
 const GAP: Record<number, string> = { 0: "gap-0", 1: "gap-1", 2: "gap-2", 3: "gap-3", 4: "gap-4", 5: "gap-5", 6: "gap-6", 8: "gap-8" };
 const PAD: Record<number, string> = { 0: "p-0", 1: "p-1", 2: "p-2", 3: "p-3", 4: "p-4", 5: "p-5", 6: "p-6", 8: "p-8" };
-const COLS: Record<number, string> = { 1: "grid-cols-1", 2: "grid-cols-1 sm:grid-cols-2", 3: "grid-cols-1 sm:grid-cols-3", 4: "grid-cols-2 sm:grid-cols-4" };
 const ALIGN: Record<string, string> = { start: "items-start", center: "items-center", end: "items-end", between: "items-center justify-between" };
 const TITLE: Record<string, string> = { sm: "text-sm font-semibold", md: "text-body font-semibold", lg: "text-lg font-semibold tracking-tight" };
 const TONE: Record<string, string> = { default: "text-gtm-text", secondary: "text-gtm-secondary", muted: "text-gtm-muted" };
@@ -60,6 +59,12 @@ function num(prop: PropValue | undefined, fallback: number): number {
 function toNumber(v: unknown): number {
   const n = typeof v === "number" ? v : Number(String(v ?? "").replace(/[,$%]/g, ""));
   return Number.isFinite(n) ? n : 0;
+}
+
+/** Up to `cols` columns, none narrower than 7.5rem, so a 2–4 column grid reflows on a phone instead of crushing. */
+function gridColumns(cols: number, gap: number): string {
+  const track = `calc((100% - ${(cols - 1) * gap * 4}px) / ${cols})`;
+  return `repeat(auto-fit, minmax(min(100%, max(7.5rem, ${track})), 1fr))`;
 }
 
 function field(item: unknown, name: string): unknown {
@@ -164,7 +169,7 @@ function renderNode(node: UiNode, scope: Scope, ui: Ui, key: number): ReactNode 
     }
     case "grid":
       return (
-        <div key={key} className={`grid ${COLS[num(p.cols, 2)]} ${GAP[num(p.gap, 2)]}`}>
+        <div key={key} className={`grid ${GAP[num(p.gap, 2)]}`} style={{ gridTemplateColumns: gridColumns(num(p.cols, 2), num(p.gap, 2)) }}>
           {children()}
         </div>
       );
@@ -190,7 +195,7 @@ function renderNode(node: UiNode, scope: Scope, ui: Ui, key: number): ReactNode 
       return (
         <div key={key} className="min-w-0 rounded-gtm bg-gtm-subtle px-3 py-2">
           <div className="text-caption text-gtm-muted">{text(p.label, scope)}</div>
-          <div className="truncate text-sm font-medium tabular-nums">{text(p.value, scope)}</div>
+          <div className="line-clamp-2 text-sm font-medium break-words tabular-nums">{text(p.value, scope)}</div>
           {p.caption && <div className="text-caption text-gtm-muted">{text(p.caption, scope)}</div>}
         </div>
       );
@@ -230,7 +235,7 @@ function renderNode(node: UiNode, scope: Scope, ui: Ui, key: number): ReactNode 
       return (
         <div key={key} className="flex flex-col gap-2">
           {rows.map((r, i) => (
-            <div key={i} className="grid grid-cols-[minmax(0,10rem)_1fr_auto] items-center gap-3 text-meta">
+            <div key={i} className="grid grid-cols-[minmax(0,7rem)_1fr_auto] items-center gap-3 text-meta sm:grid-cols-[minmax(0,10rem)_1fr_auto]">
               <span className="truncate text-gtm-secondary" title={r.label}>
                 {r.label}
               </span>
@@ -337,7 +342,7 @@ function renderNode(node: UiNode, scope: Scope, ui: Ui, key: number): ReactNode 
           exclusive
           value={String(ui.state[name] ?? "")}
           onChange={(_, v: string | null) => v !== null && ui.setState(name, v)}
-          className="self-start"
+          className="max-w-full self-start overflow-x-auto"
         >
           {pairs(text(p.options, scope)).map(([v, label]) => (
             <ToggleButton key={v} value={v} className="px-3 py-1 text-xs normal-case">

@@ -60,7 +60,28 @@ export function CommitteeWidget() {
         />
       }
     >
-      <div className="-mx-1 overflow-x-auto">
+      <ul className="-mx-1 flex flex-col divide-y divide-gtm-border sm:hidden">
+        {members.map((m) => (
+          <li key={m.name} className="gtm-enter flex items-start gap-3 px-1 py-3 first:pt-1">
+            <Avatar className="mt-0.5 size-8 bg-gtm-subtle text-caption font-semibold text-gtm-secondary">{initials(m.name)}</Avatar>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium">{m.name}</div>
+              <div className="text-xs text-gtm-muted">{m.title}</div>
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <Chip size="small" variant="outlined" color={ROLE[m.role].color} label={ROLE[m.role].label} className={ROLE[m.role].className} />
+                <span className="flex items-center gap-2 text-xs text-gtm-secondary">
+                  <span className={`size-2 rounded-full ${m.engaged ? "bg-gtm-success" : "bg-gtm-border"}`} />
+                  {m.engaged ? "Engaged" : "Not engaged"}
+                </span>
+              </div>
+            </div>
+            <Button size="small" variant="outlined" disabled={busy} className="shrink-0" onClick={() => send(`Contact research brief on ${m.name} at ${entityLabel ?? "the account"}`)}>
+              Brief me
+            </Button>
+          </li>
+        ))}
+      </ul>
+      <div className="-mx-1 overflow-x-auto max-sm:hidden">
         <Table size="small">
           <TableHead>
             <TableRow>
@@ -124,8 +145,8 @@ function CopyRow({ icon, value, label }: { icon: React.ReactNode; value: string;
   const revealed = !/not returned/i.test(value);
   return (
     <div className="flex items-center gap-2 text-sm">
-      <span className="flex text-gtm-muted [&_svg]:size-4">{icon}</span>
-      <span className={revealed ? "" : "text-gtm-muted"}>{value}</span>
+      <span className="flex shrink-0 text-gtm-muted [&_svg]:size-4">{icon}</span>
+      <span className={`min-w-0 break-all ${revealed ? "" : "text-gtm-muted"}`}>{value}</span>
       {revealed && (
         <Tooltip title={copied ? "Copied" : `Copy ${label}`}>
           <IconButton
@@ -204,7 +225,24 @@ export function ComparisonWidget() {
         </Button>
       }
     >
-      <div className="-mx-1 overflow-x-auto">
+      <dl className="flex flex-col divide-y divide-gtm-border sm:hidden">
+        {cmp.rows.map((r) => (
+          <div key={r.dimension} className="py-3 first:pt-0 last:pb-0">
+            <dt className="text-sm font-medium">{r.dimension}</dt>
+            <dd className="mt-2 grid grid-cols-2 gap-3 text-sm">
+              <div className="min-w-0">
+                <div className="mb-0.5 text-caption text-gtm-muted">Us</div>
+                {r.us}
+              </div>
+              <div className="min-w-0 text-gtm-secondary">
+                <div className="mb-0.5 text-caption text-gtm-muted">{cmp.competitor}</div>
+                {r.them}
+              </div>
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <div className="-mx-1 overflow-x-auto max-sm:hidden">
         <Table size="small">
           <TableHead>
             <TableRow>

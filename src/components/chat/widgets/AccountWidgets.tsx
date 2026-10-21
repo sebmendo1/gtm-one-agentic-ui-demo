@@ -67,16 +67,16 @@ export function CompanyWidget() {
         {stats.map(([label, value]) => (
           <div key={label} className="rounded-gtm bg-gtm-subtle px-3 py-2">
             <div className="text-caption text-gtm-muted">{label}</div>
-            <div className="truncate text-sm font-medium" title={value}>
+            <div className="line-clamp-2 text-sm font-medium break-words" title={value}>
               {value}
             </div>
           </div>
         ))}
       </div>
       {c.icpFit && (
-        <div className="mt-3 flex items-center gap-2">
-          <span className="text-meta text-gtm-secondary">ICP fit</span>
-          <Chip size="small" label={c.icpFit} color={fitColor(c.icpFit)} variant="outlined" />
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="shrink-0 text-meta text-gtm-secondary">ICP fit</span>
+          <Chip size="small" label={c.icpFit} color={fitColor(c.icpFit)} variant="outlined" className="max-w-full" />
         </div>
       )}
     </WidgetCard>
@@ -108,18 +108,18 @@ export function IntentWidget() {
       <div className="flex flex-col gap-3">
         {shown.map((t) => (
           <div key={t.topic} className="gtm-enter">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex min-w-0 items-center gap-2">
-                <span className="truncate text-sm font-medium">{t.topic}</span>
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="min-w-0 text-sm font-medium break-words">{t.topic}</span>
                 <Chip
                   size="small"
                   label={t.mapsToUs ? "Our offering" : "Adjacent"}
                   color={t.mapsToUs ? "success" : "default"}
                   variant={t.mapsToUs ? "filled" : "outlined"}
-                  className="h-5 text-caption"
+                  className="h-5 shrink-0 text-caption"
                 />
               </div>
-              <span className="shrink-0 font-gtm-mono text-xs text-gtm-muted">{t.score ?? "—"}</span>
+              <span className="shrink-0 pt-0.5 font-gtm-mono text-xs text-gtm-muted">{t.score ?? "—"}</span>
             </div>
             <LinearProgress
               variant="determinate"
@@ -178,7 +178,7 @@ export function SignalsWidget() {
                     size="small"
                     aria-label="Draft outreach from this signal"
                     disabled={busy}
-                    className="-mt-1 opacity-60 group-hover:opacity-100"
+                    className="-mt-1 shrink-0 pointer-fine:opacity-60 pointer-fine:group-hover:opacity-100"
                     onClick={() => send(`Draft a short outreach email to ${entityLabel ?? "this account"} referencing: ${item.text} (${item.date})`)}
                   >
                     <SendOutlinedIcon fontSize="inherit" />
@@ -231,11 +231,11 @@ export function NextActionsWidget() {
               }
               slotProps={{ input: { "aria-label": action } }}
             />
-            <span className={`flex-1 text-sm ${done.has(i) ? "text-gtm-muted line-through" : ""}`}>{action}</span>
+            <span className={`min-w-0 flex-1 text-sm ${done.has(i) ? "text-gtm-muted line-through" : ""}`}>{action}</span>
             <Button
               size="small"
               disabled={busy}
-              className="opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+              className="shrink-0 transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:focus-visible:opacity-100"
               onClick={() => send(`Help me with this next step for ${entityLabel ?? "the account"}: ${action}`)}
             >
               Help me
@@ -251,8 +251,8 @@ function Gauge({ label, value, caption }: { label: string; value: number; captio
   // A low score is not an error: it reads in neutral grey, never CTA or error red.
   const color = value >= 75 ? "success" : value >= 55 ? "warning" : "inherit";
   return (
-    <div className="flex items-center gap-3">
-      <Box className="relative inline-flex">
+    <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
+      <Box className="relative inline-flex shrink-0">
         <CircularProgress variant="determinate" value={100} size={64} thickness={4} className="absolute text-gtm-subtle" />
         <CircularProgress variant="determinate" value={value} size={64} thickness={4} color={color} className={color === "inherit" ? "text-gtm-muted" : ""} />
         <span className="absolute inset-0 flex items-center justify-center text-base font-semibold">{value}</span>
@@ -281,16 +281,16 @@ export function ScoresWidget() {
   const t = tier(blended);
   return (
     <WidgetCard eyebrow="Score" title={data.company?.name ?? "Account score"} sources={componentSources.scores}>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-4">
         <Gauge label="ICP fit" value={s.fit} caption={s.fitLabel} />
         <Gauge label="In-market" value={s.inMarket} caption={s.inMarketLabel} />
       </div>
       <div className="mt-4 rounded-gtm bg-gtm-subtle px-3 py-3">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-meta text-gtm-secondary">
             Weighting: fit {fitWeight}% · in-market {100 - fitWeight}%
           </span>
-          <Chip size="small" color={t.color} label={`${blended} · ${t.label}`} />
+          <Chip size="small" color={t.color} label={`${blended} · ${t.label}`} className="max-w-full" />
         </div>
         <Slider
           size="small"

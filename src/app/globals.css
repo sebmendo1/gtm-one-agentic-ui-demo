@@ -76,6 +76,25 @@
   html,
   body {
     @apply bg-gtm-bg font-sans text-gtm-text;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Touch targets: on coarse pointers, small MUI controls grow to ~40px (Apple HIG asks 44pt). Desktop keeps the compact sizes. */
+@layer components {
+  @media (pointer: coarse) {
+    .MuiIconButton-sizeSmall {
+      min-width: 40px;
+      min-height: 40px;
+    }
+    .MuiButton-sizeSmall,
+    .MuiToggleButton-sizeSmall {
+      min-height: 36px;
+    }
+    .MuiChip-clickable.MuiChip-sizeSmall {
+      height: 32px;
+      border-radius: 16px;
+    }
   }
 }
 
@@ -94,6 +113,7 @@
     font-size: 15px;
     line-height: 1.7;
     color: var(--gtm-text);
+    overflow-wrap: break-word;
   }
   .gtm-prose > * + * {
     margin-top: 0.75em;
@@ -149,6 +169,12 @@
     background: var(--gtm-surface-secondary);
     border: 1px solid var(--gtm-border);
     overflow-x: auto;
+  }
+  /* Touch shows the copy button all the time; a top strip keeps scrolling code out from under it. */
+  @media (pointer: coarse) {
+    .gtm-prose pre {
+      padding-top: 44px;
+    }
   }
   .gtm-prose blockquote {
     border-left: 3px solid var(--gtm-border);

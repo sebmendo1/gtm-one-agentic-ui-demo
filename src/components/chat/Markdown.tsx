@@ -21,7 +21,7 @@ function CodeBlock({ children }: { children: ReactNode }) {
         <IconButton
           size="small"
           aria-label="Copy code"
-          className="absolute top-1.5 right-1.5 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+          className="absolute top-1 right-1 transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:focus-visible:opacity-100"
           onClick={async () => {
             if (await copyText(ref.current?.innerText ?? "")) {
               setCopied(true);

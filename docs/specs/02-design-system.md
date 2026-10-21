@@ -70,6 +70,15 @@ Rhythm:
 - Token utilities: `bg-gtm-bg`, `bg-gtm-bg-secondary`, `bg-gtm-surface`, `bg-gtm-subtle`, `border-gtm-border`, `text-gtm-text`, `text-gtm-secondary`, `text-gtm-muted`, `text-gtm-emphasis`, `bg-gtm-cta`, `font-gtm-mono`, `rounded-gtm`, `rounded-gtm-xl`, and the type scale above.
 - Use MUI for interactive controls (Button, ToggleButtonGroup, Switch, Slider, Table, Chip, Tooltip, Collapse, Menu) and Tailwind for layout and spacing.
 
+## Mobile
+
+- Viewport: `viewport-fit=cover` with `env(safe-area-inset-*)` padding on the header, sidebar, main column, and bottom composer slot; `interactive-widget=resizes-content` so the keyboard resizes the layout instead of covering the composer.
+- Inputs are 16px below `sm` (iOS zooms into anything smaller on focus); the composer sends `enterKeyHint="send"` and uses a short placeholder under 480px.
+- Touch targets: on `(pointer: coarse)`, small IconButtons grow to 40px, small Buttons and ToggleButtons to 36px tall, clickable small Chips to 32px; text toggles get extra vertical padding via `pointer-coarse:`.
+- Hover-only reveals (copy, delete, send, "Help me") use `pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100`, so they're always visible on touch. Sidebar delete shows on touch only for the open chat.
+- Below `sm`, wide tables become stacks: the buying committee is a list with a "Brief me" button per person, and the comparison is one block per dimension. Composed grids reflow with a 7.5rem minimum column.
+- Below `md`, the sidebar is an overlay drawer that starts closed (CSS decides before hydration, so it never flashes open); the header hides the brand mark during a chat so the title can take the space.
+
 ## Shape
 
 - Buttons/cards: 8px (`rounded-gtm`), feature cards and widgets 12px (`rounded-gtm-xl`); chips and the composer are pills.
