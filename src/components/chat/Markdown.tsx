@@ -1,8 +1,7 @@
 "use client";
 
 import { IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip } from "@mui/material";
-import CheckIcon from "@mui/icons-material/Check";
-import ContentCopyIcon from "@mui/icons-material/ContentCopyOutlined";
+import { CheckIcon, DocumentDuplicateIcon } from "@heroicons/react/20/solid";
 import { memo, useRef, useState, type ReactNode } from "react";
 import ReactMarkdown, { defaultUrlTransform, type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -10,6 +9,7 @@ import { linkCitations } from "@/lib/message";
 import { isTrustedHref } from "@/lib/safe-links";
 import { Cite } from "./Cite";
 import { copyText } from "./context";
+import { rehypeStream, type CaretState } from "./stream/rehypeStream";
 
 function CodeBlock({ children }: { children: ReactNode }) {
   const ref = useRef<HTMLPreElement>(null);
@@ -29,7 +29,7 @@ function CodeBlock({ children }: { children: ReactNode }) {
             }
           }}
         >
-          {copied ? <CheckIcon fontSize="inherit" /> : <ContentCopyIcon fontSize="inherit" />}
+          {copied ? <CheckIcon className="size-4.5" /> : <DocumentDuplicateIcon className="size-4.5" />}
         </IconButton>
       </Tooltip>
     </div>
@@ -78,10 +78,16 @@ function urlTransform(url: string): string {
   return url.startsWith("cite:") ? url : defaultUrlTransform(url);
 }
 
-export const Markdown = memo(function Markdown({ markdown }: { markdown: string }) {
+/** `animate` fades each newly revealed word in; `caret` draws the stream caret after the last word. */
+export const Markdown = memo(function Markdown({ markdown, animate = false, caret = null }: { markdown: string; animate?: boolean; caret?: CaretState | null }) {
   return (
     <div className="gtm-prose">
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components} urlTransform={urlTransform}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={animate ? [[rehypeStream, { caret }]] : undefined}
+        components={components}
+        urlTransform={urlTransform}
+      >
         {linkCitations(markdown)}
       </ReactMarkdown>
     </div>

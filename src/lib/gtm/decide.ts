@@ -1,5 +1,15 @@
 import "server-only";
-import { choice, TypeSafeClient, type ChoiceResponse } from "@typesafe-ai/sdk";
+import {
+  APIConnectionError,
+  choice,
+  InternalServerError,
+  RateLimitError,
+  TypeSafeClient,
+  type ChoiceResponse,
+  type Questions,
+  type RequestOptions,
+  type SystemOneRequest,
+} from "@typesafe-ai/sdk";
 import { MAX_SECTIONS, UI_COMPONENTS, type Placement, type UiComponentId } from "../message";
 import type { ClarifyingQuestion, SectionTrace, UiPick } from "../spec";
 import { computeScores, finalizeCommittee, type Adapted } from "./adapt";
@@ -12,6 +22,61 @@ let client: TypeSafeClient | undefined;
 function jev(): TypeSafeClient {
   client ??= new TypeSafeClient();
   return client;
+}
+
+/** Calls normally answer in 1–3s; a bad network falls back within seconds instead of retrying for half a minute. */
+const JEV_OPTIONS: RequestOptions = { timeout: 6000, retry: { maxRetries: 0 } };
+/** After a failure, skip TypeSafe for a while so the next call and turn don't wait out another timeout. */
+const COOL_DOWN_MS = 60_000;
+let downUntil = 0;
+
+/** TypeSafe is down or unreachable, as opposed to rejecting the request (bad key, bad input). */
+function unreachable(error: unknown): boolean {
+  return error instanceof APIConnectionError || error instanceof RateLimitError || error instanceof InternalServerError;
+}
+
+function orUnreachable(error: unknown): null {
+  if (!unreachable(error)) throw error;
+  downUntil = Date.now() + COOL_DOWN_MS;
+  console.warn(`TypeSafe unreachable, using keyword fallback: ${error instanceof Error ? error.message : String(error)}`);
+  return null;
+}
+
+function askJev<Q extends Questions>(request: SystemOneRequest<Q>) {
+  if (Date.now() < downUntil) return Promise.resolve(null);
+  return jev().systemOne(request, JEV_OPTIONS).catch(orUnreachable);
+}
+
+export const KEYWORD_MODEL = "keyword fallback (TypeSafe unreachable)";
+
+const KEYWORD_JOBS: [RegExp, GtmJob][] = [
+  [/\b(draft|write|reply|email|agenda|talk track)\b/i, "draft"],
+  [/\b(buying committee|committee|stakeholders?|decision[- ]makers?|multithread)/i, "buying_committee"],
+  [/\bwhy now\b|\btiming\b|\bmove now\b/i, "why_now"],
+  [/\bintent\b/i, "intent_monitor"],
+  [/\b(score|tier|icp fit)\b/i, "score_accounts"],
+  [/\btech(nology)? stack|technograph/i, "tech_stack"],
+  [/\b(competitor|compare|versus|vs\.?)\b/i, "competitor"],
+  [/\b(our (offerings|personas|icp|competitors)|gtm context)\b/i, "gtm_context"],
+  [/\b(?:[Bb]rief me on|[Ww]ho is|[Rr]esearch) [A-Z][a-z]+ [A-Z][a-z'-]+/, "contact_brief"],
+];
+const PRODUCT_QUESTION = /\b(gtm ai|zoominfo|set (it )?up|install|sign in|cli|mcp|credits?|what can you do)\b/i;
+
+function fallbackChoice<T extends string>(label: T, confidence = 0.6): ChoiceResponse {
+  return { type: "choice", choice: label, confidence, probabilities: { [label]: confidence } };
+}
+
+function keywordClassification(description: string, previous: string | null, namesAccount: boolean, clarifications: Record<string, string>): Classification {
+  const text = description.trim().split(/\s+/).length <= 4 && previous ? `${description} ${previous}` : description;
+  const job = KEYWORD_JOBS.find(([pattern]) => pattern.test(text))?.[1] ?? "account_brief";
+  const prose = !namesAccount && PRODUCT_QUESTION.test(description);
+  return {
+    surface: { choice: prose ? "prose" : "genui", confidence: 0.8 },
+    job: { choice: applyJobClarification(job, clarifications), confidence: 0.6, probabilities: { [job]: 0.6 } },
+    questions: [],
+    model: KEYWORD_MODEL,
+    usage: { input_tokens: null, output_tokens: null },
+  };
 }
 
 const SURFACES = {
@@ -116,7 +181,7 @@ export async function classifyTurn(
   namesAccount = false,
   previous: string | null = null,
 ): Promise<Classification> {
-  const result = await jev().systemOne({
+  const request = {
     state: { description, previous_request: previous ?? "", candidates, clarifications },
     questions: {
       surface: choice(
@@ -126,7 +191,9 @@ export async function classifyTurn(
       job: choice("Which GTM job or skill does `description` ask for? Use `previous_request` to resolve follow-ups.", GTM_JOBS),
       task: choice("Does `description` (with `previous_request`) say what the user wants done, or does it only name an account or person?", TASK),
     },
-  });
+  };
+  const result = await askJev(request);
+  if (!result) return keywordClassification(description, previous, namesAccount, clarifications);
   const surfaceResp = result.answers.surface as ChoiceResponse<typeof SURFACES>;
   const jobResp = result.answers.job as ChoiceResponse<typeof GTM_JOBS>;
   const taskResp = result.answers.task as ChoiceResponse<typeof TASK>;
@@ -290,20 +357,23 @@ export async function decideUi(input: {
     questions[`member_${i}`] = choice(`What buying role does \`members[${i}]\` (${m.title}) most likely play?`, ROLES);
   });
 
-  const result = await jev().systemOne({
+  const offerings = bundle.gtmContext?.offerings ?? [];
+  const result = await askJev({
     state: {
       description: input.description,
       previous_request: input.previous ?? "",
       job,
       clarifications: input.clarifications,
       components: candidates.map((id) => `${id}: ${UI_COMPONENTS[id].describe}`),
-      offerings: bundle.gtmContext?.offerings ?? [],
+      offerings,
       topics: topics.map((t) => t.topic),
       members: members.map((m) => ({ name: m.name, title: m.title })),
     },
     questions,
   });
-  const answers = result.answers as unknown as Record<string, ChoiceResponse>;
+  const answers = result
+    ? (result.answers as unknown as Record<string, ChoiceResponse>)
+    : fallbackUiAnswers(job, bundle, viewIds, topics.map((t) => t.topic), offerings);
 
   topics.forEach((t, i) => {
     t.mapsToUs = answers[`topic_${i}`]?.choice === "ours";
@@ -371,7 +441,29 @@ export async function decideUi(input: {
     picks,
     sections: { limit: MAX_SECTIONS, allowed, dropped, need: need.map((n) => Math.round(n * 100) / 100) },
     purpose: { choice: purposeResp.choice as GtmPurpose, confidence: purposeResp.confidence },
-    model: result.model,
-    usage: result.usage,
+    model: result?.model ?? KEYWORD_MODEL,
+    usage: result?.usage ?? { input_tokens: null, output_tokens: null },
+  };
+}
+
+/** The answers decideUi would get from Jev, from the job's defaults; members keep their fixture roles. */
+function fallbackUiAnswers(
+  job: GtmJob,
+  bundle: FixtureBundle,
+  viewIds: UiPick["id"][],
+  topics: string[],
+  offerings: string[],
+): Record<string, ChoiceResponse> {
+  const words = new Set(offerings.flatMap((o) => o.toLowerCase().split(/\W+/)).filter((w) => w.length > 3));
+  const main = primaryComponent(job, bundle) ?? viewIds[0];
+  return {
+    purpose: fallbackChoice("pre_call"),
+    mode: fallbackChoice(job === "draft" ? "text" : "visual", 1),
+    ...(main ? { main_view: fallbackChoice(main, 1) } : {}),
+    view_count: fallbackChoice("one", 1),
+    ...Object.fromEntries(viewIds.map((id) => [`extra_${id}`, fallbackChoice("omit", 1)])),
+    ...Object.fromEntries(
+      topics.map((t, i) => [`topic_${i}`, fallbackChoice(t.toLowerCase().split(/\W+/).some((w) => words.has(w)) ? "ours" : "other")]),
+    ),
   };
 }

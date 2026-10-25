@@ -2,17 +2,8 @@ import "server-only";
 import { extractCandidates } from "../candidates";
 import { adaptEvidence } from "../gtm/adapt";
 import { chooseBackend } from "../gtm/backend";
-import {
-  COMMANDS,
-  buildArgv,
-  displayCommand,
-  planEstimate,
-  sanitizeStep,
-  stepEstimate,
-  stepNeeds,
-  type CommandDef,
-  type PlanStep,
-} from "../gtm/commands";
+import { COMMANDS, planEstimate, sanitizeStep, stepNeeds, type PlanStep } from "../gtm/commands";
+import { approvalLead, approvalSteps } from "./approval";
 import { DATA_ROOTS, type DataRoot } from "../genui/catalog";
 import { classifyTurn, decideUi, primaryComponent, type Classification, type UiDecision } from "../gtm/decide";
 import { GTM_JOBS, type GtmJob } from "../gtm/jobs";
@@ -85,40 +76,6 @@ function fromApproval(approval: ApprovalDecision): Classification {
 
 function produces(step: PlanStep, key: "companyId" | "contactId"): boolean {
   return (key === "companyId" && step.command === "companies_enrich") || (key === "contactId" && step.command === "contacts_enrich");
-}
-
-function jobLabel(job: GtmJob): string {
-  return GTM_JOBS[job].split(":")[0]!.trim();
-}
-
-function approvalSteps(ledger: Ledger, free: PlanStep[], paid: PlanStep[]): ApprovalRequest["steps"] {
-  return [...free, ...paid].map((step) => {
-    const def: CommandDef = COMMANDS[step.command];
-    const built = buildArgv(step, ledger.ctx, null);
-    const display =
-      "argv" in built
-        ? displayCommand(built.argv)
-        : `gtm ${def.path.join(" ")} ${step.flags.map((f) => `--${f.name} ${f.values.join(" ")}`).join(" ")}`.trim();
-    return {
-      command: step.command,
-      flags: step.flags,
-      rawArgs: step.rawArgs,
-      reason: step.reason,
-      display,
-      cost: def.cost,
-      estimate: stepEstimate(step),
-      executed: def.cost === "free",
-    };
-  });
-}
-
-function approvalLead(request: ApprovalRequest, resolved: boolean): string {
-  const name = request.entity.company ?? request.entity.contact ?? request.entity.domain ?? "this account";
-  const paid = request.steps.filter((s) => !s.executed);
-  const opener = resolved ? `I found **${name}** with a free search.` : `I can research **${name}**.`;
-  const what = paid.map((s) => s.reason.charAt(0).toLowerCase() + s.reason.slice(1)).join(", and ");
-  const cost = request.source === "fixtures" ? "This is demo data, so nothing is charged." : "These spend your ZoomInfo credits.";
-  return `${opener} To finish the ${jobLabel(request.job).toLowerCase()}, I'd run ${paid.length} more GTM call${paid.length === 1 ? "" : "s"}: ${what}. ${cost} Want me to go ahead?`;
 }
 
 function notFoundMarkdown(query: string | null, source: "gtm-cli" | "fixtures"): string {

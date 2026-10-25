@@ -4,6 +4,8 @@
 
 Prove that GTM AI can be experienced as a **chat product** where answers are **decision surfaces** (GenUI), not only prose. The seller describes a GTM job; Jev picks which surface to show; fixture data (later MCP) fills the UI.
 
+**PoC extension (spec 11):** a mid-market **Account Executive** gets a pinned **Go-to-agent** hub that proactively prepares meeting briefs and follow-ups from simulated Google Calendar/Gmail plus ZoomInfo fixtures, with spoke chats for deep work.
+
 ## Boundaries
 
 | Layer | Technology | Role |
@@ -28,6 +30,7 @@ Prove that GTM AI can be experienced as a **chat product** where answers are **d
 - ZoomInfo MCP inside the app runtime (the app shells out to the GTM CLI; MCP stays for AI clients like Cursor)
 - CRM writes — recommendations are drafts only
 - Persisting specs server-side beyond client localStorage for conversations
+- Real Google OAuth, real Salesforce connection, server-side agent scheduling, or outbound email (always-on PoC uses simulated sources and client-triggered sweeps; see [11-always-on-agent.md](./11-always-on-agent.md))
 
 ## GTM AI setup (operators)
 

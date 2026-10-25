@@ -38,6 +38,7 @@ A research turn should reach the approval card in under 10 seconds, and an appro
 - The planner's free lookups and help text come from code before the model is called (Turn loop step 4), so the planner usually needs one Gemini call instead of three to five.
 - The planner has a 25-second budget with one retry. Past that, the turn uses `defaultPlan`.
 - The writer and the prose answerer must start streaming within 15 seconds and can't stall for more than 10. Past either limit, the turn uses the evidence-only template.
+- Each Jev call gets one 6-second attempt. If TypeSafe is unreachable (connection error, timeout, 429 or 5xx), the turn still answers: the job is routed by keywords, and the reply shows the job's primary component (text for drafts). For the next minute, Jev calls are skipped, so a bad venue network costs at most one timeout. The trace model reads "keyword fallback (TypeSafe unreachable)". A rejected key or bad request still fails the turn.
 
 ## Evidence carry
 
@@ -47,6 +48,18 @@ The server is stateless, so the client holds the evidence between turns. `src/li
 - `needs_approval` carries the evidence gathered before the gate, so approving resumes without re-running free calls.
 - The server ignores a carry that fails the signature check, is older than 12 hours, came from a different data source, or is about a different subject (domain, then company, then contact). A new person at the same company keeps only the company id.
 - Reused steps are marked `carried` and shown as "Reused from earlier"; the activity summary counts them.
+
+## Deterministic agent runner (spec 11)
+
+`POST /api/agents/sweep` runs **without Gemini or Jev**. For each fired trigger, `src/lib/agents/runner.ts`:
+
+1. Forces the **fixture** backend.
+2. Executes a fixed free `PlanStep` list from the agent catalog.
+3. Optionally stops at **needs_approval** when paid steps remain (Account Map).
+4. Builds replies with `adaptEvidence`, `templateMarkdown`, `finalizeMarkdown`, and `signEvidence` — same citation rules as a harness turn.
+5. Uses fixed widget placements per agent (no `decideUi` call).
+
+Approving a card in the UI resumes the paid work through the normal `/api/generate` approval path.
 
 ## Measuring GenUI
 
@@ -84,7 +97,7 @@ Status rules (from the onboarding prompt):
 
 ## Source coverage
 
-Computed in code, max 3 lines: ZoomInfo calls by status; CRM/conversation history status (`unknown` unless a research payload reports it); data source (`GTM CLI` vs `fixtures`). Shown under the reply in "Sources & coverage". Link: [Connect customer context](https://gtm.ai/guides/connect-customer-context).
+Computed in code, max 3 lines: ZoomInfo calls by status; CRM/conversation history status (`unknown` unless a research payload reports it); data source (`GTM CLI` vs `fixtures`). Shown under the reply behind the **Sources** pill in the action row. Link: [Connect customer context](https://gtm.ai/guides/connect-customer-context).
 
 ## Allowlist (read-only)
 

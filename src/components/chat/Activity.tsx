@@ -1,25 +1,29 @@
 "use client";
 
 import { Chip, CircularProgress, Collapse } from "@mui/material";
-import BlockIcon from "@mui/icons-material/Block";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutlineOutlined";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
+import { CheckCircleIcon, ChevronRightIcon, ExclamationCircleIcon, LockClosedIcon, NoSymbolIcon } from "@heroicons/react/20/solid";
 import { useEffect, useState, type ReactNode } from "react";
 import { GTM_JOBS } from "@/lib/gtm/jobs";
 import { UI_COMPONENTS, isUiComponent } from "@/lib/message";
 import type { EvidenceSummary, SectionDropReason, SectionTrace, Trace } from "@/lib/spec";
 
+/** Heroicons has no empty circle; a ring sized to match the solid circle glyphs stands in. */
+function Ring() {
+  return (
+    <span className="flex size-4 items-center justify-center text-gtm-muted">
+      <span className="size-[13px] rounded-full border-[1.5px] border-current" />
+    </span>
+  );
+}
+
 const STATUS_ICON: Record<EvidenceSummary["status"], ReactNode> = {
-  ok: <CheckCircleOutlineIcon className="text-gtm-success" sx={{ fontSize: 16 }} />,
-  empty: <RadioButtonUncheckedIcon className="text-gtm-muted" sx={{ fontSize: 16 }} />,
-  denied: <BlockIcon className="text-gtm-warning" sx={{ fontSize: 16 }} />,
-  unauthorized: <LockOutlinedIcon className="text-gtm-accent" sx={{ fontSize: 16 }} />,
-  unavailable: <ErrorOutlineIcon className="text-gtm-warning" sx={{ fontSize: 16 }} />,
-  error: <ErrorOutlineIcon className="text-gtm-accent" sx={{ fontSize: 16 }} />,
-  skipped: <RadioButtonUncheckedIcon className="text-gtm-muted" sx={{ fontSize: 16 }} />,
+  ok: <CheckCircleIcon className="size-4 text-gtm-success" />,
+  empty: <Ring />,
+  denied: <NoSymbolIcon className="size-4 text-gtm-warning" />,
+  unauthorized: <LockClosedIcon className="size-4 text-gtm-accent" />,
+  unavailable: <ExclamationCircleIcon className="size-4 text-gtm-warning" />,
+  error: <ExclamationCircleIcon className="size-4 text-gtm-accent" />,
+  skipped: <Ring />,
 };
 
 function pct(n: number) {
@@ -103,11 +107,11 @@ export function Activity({ activity, trace, live }: { activity: ActivityState; t
   const errors = [h?.planner.error, h?.writer.error].filter((e): e is string => Boolean(e));
 
   return (
-    <div className="mb-2">
+    <div className="mb-3">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 rounded-full py-1 pr-2 text-left text-meta text-gtm-muted transition-colors hover:text-gtm-text pointer-coarse:py-2"
+        className="flex items-center gap-1.5 py-1 pr-2 text-left text-meta text-gtm-muted transition-colors hover:text-gtm-text pointer-coarse:py-2"
         aria-expanded={open}
       >
         {live ? <CircularProgress size={12} thickness={6} color="inherit" /> : null}
@@ -121,10 +125,10 @@ export function Activity({ activity, trace, live }: { activity: ActivityState; t
         ) : (
           <span>{summary}</span>
         )}
-        <ExpandMoreIcon sx={{ fontSize: 16 }} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronRightIcon className={`size-4 transition-transform ${open ? "rotate-90" : ""}`} />
       </button>
       <Collapse in={open}>
-        <div className="mt-1 ml-2 flex flex-col gap-3 border-l border-gtm-border py-1 pl-3 text-meta break-words sm:pl-4">
+        <div className="mt-2 ml-1.5 flex flex-col gap-3 border-l border-gtm-border py-1 pl-4 text-meta break-words">
           {activity.labels.length > 0 && (
             <ul className="flex flex-col gap-0.5 text-gtm-secondary">
               {activity.labels.map((label, i) => (

@@ -18,6 +18,7 @@ import { GEMINI_PROVIDER_OPTIONS, SAFETY_BLOCKED, WRITER_TIMEOUT, addUsage, gemi
 import type { Evidence, Ledger } from "./evidence";
 import { SCOPE_RULES, UNTRUSTED_REMINDER, UNTRUSTED_RULES, countRedactions, fenceUntrusted, screenUntrusted } from "./guardrails";
 import { PLATFORM_RULES } from "./knowledge";
+import { SELLER_FIRST_NAME, SELLER_RULES } from "./persona";
 
 const MAX_RECORD_CHARS = 6000;
 
@@ -155,6 +156,7 @@ export async function streamWithGemini(input: {
     providerOptions: GEMINI_PROVIDER_OPTIONS,
     instructions: [
       "You are GTM AI, a conversational assistant for B2B sellers, working from ZoomInfo evidence. You never invent facts.",
+      ...SELLER_RULES,
       ...SCOPE_RULES,
       "Reply like a sharp colleague in chat. GitHub-flavored Markdown; short paragraphs; bullets when listing; ### headings only for long replies.",
       ...shapeRules(input.job),
@@ -296,7 +298,7 @@ function templateDraft(adapted: Adapted, frame: MessageFrame): string {
     `Hi ${first ?? "there"},`,
     opener,
     ask,
-    "Best,\n[Your name]",
+    `Best,\n${SELLER_FIRST_NAME}`,
     ...(ids.length ? [`Grounded in: [${ids.join(", ")}]`] : []),
   ].join("\n\n");
 }

@@ -18,14 +18,11 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import CheckIcon from "@mui/icons-material/Check";
-import ContentCopyIcon from "@mui/icons-material/ContentCopyOutlined";
-import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
-import MailOutlineIcon from "@mui/icons-material/MailOutlined";
-import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
-import { useState } from "react";
+import { PencilSquareIcon } from "@heroicons/react/24/outline";
+import { CheckIcon, DocumentDuplicateIcon, EnvelopeIcon, PhoneIcon } from "@heroicons/react/20/solid";
+import { useContext, useState } from "react";
 import type { CommitteeMember } from "@/lib/gtm/fixtures";
-import { copyText, useChatActions, useFrame } from "../context";
+import { QuietEvidenceContext, copyText, useChatActions, useFrame } from "../context";
 import { WidgetCard, initials } from "./WidgetCard";
 
 /** Selected filter chips are inverse neutral; CTA red is reserved for primary actions. */
@@ -159,7 +156,7 @@ function CopyRow({ icon, value, label }: { icon: React.ReactNode; value: string;
               }
             }}
           >
-            {copied ? <CheckIcon fontSize="inherit" /> : <ContentCopyIcon fontSize="inherit" />}
+            {copied ? <CheckIcon className="size-4.5" /> : <DocumentDuplicateIcon className="size-4.5" />}
           </IconButton>
         </Tooltip>
       )}
@@ -169,9 +166,14 @@ function CopyRow({ icon, value, label }: { icon: React.ReactNode; value: string;
 
 export function ContactWidget() {
   const { data, componentSources } = useFrame();
-  const { send, busy } = useChatActions();
+  const { send, busy, hostHasPrimary } = useChatActions();
+  const quiet = useContext(QuietEvidenceContext);
   const p = data.contact;
   if (!p) return null;
+  const rows = [
+    { icon: <EnvelopeIcon />, value: p.email, label: "email" },
+    { icon: <PhoneIcon />, value: p.phone, label: "phone" },
+  ].filter((row) => !quiet || (row.value && !/not returned/i.test(row.value)));
   return (
     <WidgetCard
       eyebrow="Contact"
@@ -189,17 +191,26 @@ export function ContactWidget() {
       }
       sources={componentSources.contact}
       action={
-        <Button size="small" variant="contained" disabled={busy} startIcon={<MailOutlineIcon />} onClick={() => send(`Draft a short first email to ${p.name}${p.company ? ` at ${p.company}` : ""}`)}>
+        !quiet && <Button
+          size="small"
+          variant={hostHasPrimary ? "outlined" : "contained"}
+          color={hostHasPrimary ? "inherit" : "primary"}
+          disabled={busy}
+          startIcon={<EnvelopeIcon className="size-4" />}
+          onClick={() => send(`Draft a short first email to ${p.name}${p.company ? ` at ${p.company}` : ""}`)}>
           Draft email
         </Button>
       }
     >
-      <div className="flex flex-col gap-0.5">
-        <CopyRow icon={<MailOutlineIcon />} value={p.email} label="email" />
-        <CopyRow icon={<PhoneOutlinedIcon />} value={p.phone} label="phone" />
-      </div>
+      {rows.length > 0 && (
+        <div className="flex flex-col gap-0.5">
+          {rows.map((row) => (
+            <CopyRow key={row.label} {...row} />
+          ))}
+        </div>
+      )}
       {p.engagement && (
-        <div className="mt-3 rounded-gtm bg-gtm-subtle px-3 py-2 text-sm">
+        <div className={`rounded-gtm bg-gtm-subtle px-3 py-2 text-sm ${rows.length ? "mt-3" : ""}`}>
           <span className="text-gtm-muted">Our history: </span>
           {p.engagement}
         </div>
@@ -347,7 +358,7 @@ export function CrmDraftCard({ field, value, reason }: { field: string; value: s
   return (
     <Card className="gtm-enter border-dashed">
       <CardContent className="flex items-start gap-3 p-4 last:pb-4">
-        <EditNoteOutlinedIcon className="mt-0.5 text-gtm-secondary" fontSize="small" />
+        <PencilSquareIcon className="mt-0.5 size-5 shrink-0 text-gtm-secondary" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-gtm-mono text-xs text-gtm-secondary">{field}</span>
@@ -367,7 +378,7 @@ export function CrmDraftCard({ field, value, reason }: { field: string; value: s
               }
             }}
           >
-            {copied ? <CheckIcon fontSize="inherit" /> : <ContentCopyIcon fontSize="inherit" />}
+            {copied ? <CheckIcon className="size-4.5" /> : <DocumentDuplicateIcon className="size-4.5" />}
           </IconButton>
         </Tooltip>
       </CardContent>

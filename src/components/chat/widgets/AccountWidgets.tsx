@@ -17,12 +17,8 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import ArrowOutwardIcon from "@mui/icons-material/ArrowOutward";
-import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import NewspaperOutlinedIcon from "@mui/icons-material/NewspaperOutlined";
-import BoltOutlinedIcon from "@mui/icons-material/BoltOutlined";
-import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
+import { ArrowUpRightIcon, ChevronDownIcon, PaperAirplaneIcon, SparklesIcon } from "@heroicons/react/20/solid";
+import { BoltIcon, NewspaperIcon } from "@heroicons/react/16/solid";
 import { useMemo, useState } from "react";
 import { useChatActions, useFrame } from "../context";
 import { WidgetCard, initials } from "./WidgetCard";
@@ -135,7 +131,7 @@ export function IntentWidget() {
         <Button
           size="small"
           className="mt-3"
-          startIcon={<AutoAwesomeOutlinedIcon />}
+          startIcon={<SparklesIcon className="size-4" />}
           disabled={busy}
           onClick={() => send(`Why now case for reaching out to ${entityLabel ?? "this account"} based on its intent on our offerings`)}
         >
@@ -166,7 +162,7 @@ export function SignalsWidget() {
               <span className={`size-1.5 rounded-full ${item.kind === "Scoop" ? "bg-gtm-text" : "bg-gtm-muted"}`} />
             </span>
             <div className="flex items-center gap-2 text-xs text-gtm-muted">
-              {item.kind === "Scoop" ? <BoltOutlinedIcon sx={{ fontSize: 14 }} /> : <NewspaperOutlinedIcon sx={{ fontSize: 14 }} />}
+              {item.kind === "Scoop" ? <BoltIcon className="size-3.5" /> : <NewspaperIcon className="size-3.5" />}
               <span className="font-gtm-mono">{item.date || "undated"}</span>
               <span>· {item.kind}</span>
             </div>
@@ -181,7 +177,7 @@ export function SignalsWidget() {
                     className="-mt-1 shrink-0 pointer-fine:opacity-60 pointer-fine:group-hover:opacity-100"
                     onClick={() => send(`Draft a short outreach email to ${entityLabel ?? "this account"} referencing: ${item.text} (${item.date})`)}
                   >
-                    <SendOutlinedIcon fontSize="inherit" />
+                    <PaperAirplaneIcon className="size-4" />
                   </IconButton>
                 </span>
               </Tooltip>
@@ -204,7 +200,7 @@ export function NextActionsWidget() {
       title={`${done.size} of ${actions.length} done`}
       sources={componentSources.next_actions}
       action={
-        <Button size="small" variant="outlined" href={START_BUILDING} target="_blank" rel="noreferrer" endIcon={<ArrowOutwardIcon />}>
+        <Button size="small" variant="outlined" href={START_BUILDING} target="_blank" rel="noreferrer" endIcon={<ArrowUpRightIcon className="size-4" />}>
           Open in GTM AI
         </Button>
       }
@@ -304,7 +300,7 @@ export function ScoresWidget() {
           sx={{ color: "var(--gtm-text)" }}
         />
       </div>
-      <Button size="small" className="mt-2" onClick={() => setOpen((o) => !o)} endIcon={<ExpandMoreIcon className={open ? "rotate-180" : ""} />}>
+      <Button size="small" className="mt-2" onClick={() => setOpen((o) => !o)} endIcon={<ChevronDownIcon className={`size-4 transition-transform ${open ? "rotate-180" : ""}`} />}>
         {open ? "Hide" : "Show"} how it&apos;s scored
       </Button>
       <Collapse in={open}>

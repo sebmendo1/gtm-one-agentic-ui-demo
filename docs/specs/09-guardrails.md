@@ -131,6 +131,16 @@ The rate limit is kept in memory per server instance and keyed by client IP. Tha
 
 *Status:* rule 1 **In place**; rules 2 and 3 **Added** (`src/lib/request-guard.ts`, used by `src/app/api/generate/route.ts`).
 
+### G11. Always-on sources and autopilot budget (spec 11)
+
+*Required behaviour:*
+
+1. Simulated **Gmail and Calendar** bodies are untrusted if they ever reach a model (same G2/G3 fencing as CLI evidence).
+2. **Autopilot budget** (set at onboarding) counts as standing approval for **data credits only** on proactive cards the user has not dismissed. **AI credits** still require an explicit approval card per turn (G5).
+3. `/api/agents/sweep` uses the same same-origin and rate-limit guards as `/api/generate`.
+
+*Status:* **Added** with always-on PoC.
+
 ### G8. Keep the model on task and its instructions private
 
 *Google practice:* narrower tasks and more human oversight lower risk ([safety guidance](../external-sources/gemini-api-safety-guidance.md)).

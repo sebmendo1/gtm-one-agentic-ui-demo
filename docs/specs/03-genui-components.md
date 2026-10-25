@@ -18,7 +18,7 @@ The writer (Gemini, or the template fallback) emits GitHub-flavored Markdown wit
 - **Composed views** between a line `<ui:compose title="…">` and a line `</ui:compose>`, only when Jev allowed one (spec 04).
 - **CRM drafts** `<ui:crm_draft field="…" value="…" reason="…"/>`, only when allowed. Rendered as "CRM draft · not applied".
 
-Parser (`src/lib/message.ts`): tags not in the catalog, not placed by Jev, or repeated are dropped, and a reply never renders more than **3 GenUI sections** (spec 04 § Section budget). While streaming, an unfinished tag line or an unclosed composed view is hidden until it completes, so each section appears whole. Anything else is plain Markdown, so a reply always renders; history sent back to the model replaces a composed view with its title.
+Parser (`src/lib/message.ts`): tags not in the catalog, not placed by Jev, or repeated are dropped, and a reply never renders more than **3 GenUI sections** (spec 04 § Section budget). While streaming, an unfinished tag line or an unclosed composed view is hidden until it completes, so each section appears whole; `pendingSection()` reports one in progress so the client can draw a card container with a skeleton in its place (spec 02 § Streaming). Anything else is plain Markdown, so a reply always renders; history sent back to the model replaces a composed view with its title.
 
 ## Catalog components
 
@@ -82,7 +82,7 @@ Client (`src/components/chat/ComposedBlock.tsx`): renders inside the standard wi
 - **Activity**: a "thinking" disclosure above each reply. It shows the live step while working ("Planning account research with Gemini"), then a summary ("Researched with 4 GTM calls (2 reused) · 9s"). Expanded, it lists each GTM call with status and exact command (reused calls are marked "Reused from earlier"), Jev's job, purpose, reply mode and per-view picks, the **GenUI section counter** ("GenUI sections 1 of 3 max", with why other views were left out and any composed-view fixes), the planner, writer, and data source, and any fallback error. When a turn pauses for a question or approval, that phase keeps its own panel.
 - **Clarifications**: inline pill choices; the picked one stays highlighted.
 - **Approval**: an inline card listing the paid steps with credit chips and an "exact commands" disclosure, plus "Approve and run" and "Skip paid steps". Once decided, it collapses to a one-line receipt.
-- **Footer**: Sources & coverage disclosure, copy, ask again, writer label, Demo/Live chip, then follow-up suggestions built by code from the job and evidence.
+- **Footer**: an action row (copy, ask again, a **Sources** pill that opens the citations and coverage lines, then the writer label and Demo/Live chip at the right), then follow-up suggestions built by code from the job and evidence, as a hairline-divided list.
 
 ## Rules
 

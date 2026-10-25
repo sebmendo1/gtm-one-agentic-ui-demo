@@ -1,9 +1,8 @@
 "use client";
 
 import { Button, Card, CardContent, Chip, Collapse } from "@mui/material";
-import BlockIcon from "@mui/icons-material/Block";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
-import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
+import { ShieldCheckIcon } from "@heroicons/react/24/outline";
+import { ArrowRightIcon, CheckCircleIcon, CheckIcon, NoSymbolIcon } from "@heroicons/react/20/solid";
 import { useState } from "react";
 import type { ApprovalDecision, ApprovalRequest, ClarifyingQuestion } from "@/lib/spec";
 
@@ -31,9 +30,9 @@ export function ApprovalPrompt({
     return (
       <div className="my-2 flex items-center gap-2 text-meta text-gtm-secondary">
         {decision === "approved" ? (
-          <CheckCircleOutlineIcon className="text-gtm-success" sx={{ fontSize: 16 }} />
+          <CheckCircleIcon className="size-4 text-gtm-success" />
         ) : (
-          <BlockIcon className="text-gtm-warning" sx={{ fontSize: 16 }} />
+          <NoSymbolIcon className="size-4 text-gtm-warning" />
         )}
         {decision === "approved"
           ? `Approved ${paid.length} paid step${paid.length === 1 ? "" : "s"}`
@@ -42,10 +41,10 @@ export function ApprovalPrompt({
     );
   }
   return (
-    <Card className="gtm-enter my-3 border-gtm-emphasis/50">
-      <CardContent className="p-4 last:pb-4">
+    <Card className="gtm-enter my-3 border-gtm-emphasis/40">
+      <CardContent className="p-4 last:pb-4 sm:p-5 sm:last:pb-5">
         <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1">
-          <ShieldOutlinedIcon fontSize="small" className="text-gtm-emphasis" />
+          <ShieldCheckIcon className="size-5 text-gtm-emphasis" />
           <span className="font-semibold">Approve paid research?</span>
           <span className="text-xs text-gtm-muted max-sm:w-full max-sm:pl-7 sm:ml-auto">
             Planned by {request.planner.kind === "gemini" ? `Gemini` : "the default plan"}
@@ -75,10 +74,10 @@ export function ApprovalPrompt({
         <p className="mt-3 text-sm">{request.estimate}</p>
         <p className="mt-1 text-xs text-gtm-muted">{request.note}</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button variant="contained" disabled={disabled} onClick={() => onDecide("approved")} className="rounded-full whitespace-nowrap max-sm:flex-1">
+          <Button variant="contained" disabled={disabled} onClick={() => onDecide("approved")} className="whitespace-nowrap max-sm:flex-1">
             Approve and run
           </Button>
-          <Button variant="outlined" color="inherit" disabled={disabled} onClick={() => onDecide("declined")} className="rounded-full border-gtm-border whitespace-nowrap max-sm:flex-1">
+          <Button variant="outlined" color="inherit" disabled={disabled} onClick={() => onDecide("declined")} className="border-gtm-border whitespace-nowrap max-sm:flex-1">
             Skip paid steps
           </Button>
         </div>
@@ -102,27 +101,40 @@ export function ChoicePrompt({
   return (
     <div className="my-3 flex flex-col gap-3">
       {questions.map((q) => (
-        <div key={q.id} className="gtm-enter">
-          <p className="mb-2 text-body font-medium">{q.prompt}</p>
-          <div className="flex flex-wrap gap-2">
-            {q.options.map((opt) => {
+        <fieldset key={q.id} className="gtm-enter rounded-gtm-xl border border-gtm-border p-1.5">
+          <legend className="sr-only">{q.prompt}</legend>
+          <p className="px-2.5 pt-2 pb-2 text-body font-medium" aria-hidden>
+            {q.prompt}
+          </p>
+          <ul className="flex flex-col gap-px">
+            {q.options.map((opt, i) => {
               const selected = picked[q.id] === opt.id;
+              const off = disabled || (Boolean(picked[q.id]) && !selected);
               return (
-                <Button
-                  key={opt.id}
-                  variant={selected ? "contained" : "outlined"}
-                  color="inherit"
-                  disabled={disabled || (Boolean(picked[q.id]) && !selected)}
-                  onClick={() => onPick(q.id, opt.id)}
-                  className={`rounded-full ${selected ? "bg-gtm-text text-gtm-bg" : "border-gtm-border"}`}
-                  startIcon={selected ? <CheckCircleOutlineIcon /> : undefined}
-                >
-                  {opt.label}
-                </Button>
+                <li key={opt.id}>
+                  <button
+                    type="button"
+                    disabled={off}
+                    aria-pressed={selected}
+                    onClick={() => onPick(q.id, opt.id)}
+                    className={`group/opt flex min-h-10 w-full items-center gap-3 rounded-gtm px-2.5 py-2 text-left text-sm transition-colors ${selected ? "bg-gtm-selected font-medium" : "enabled:hover:bg-gtm-hover"} ${off && !selected ? "text-gtm-muted" : "text-gtm-text"}`}
+                  >
+                    <span
+                      className={`flex size-6 shrink-0 items-center justify-center rounded-md text-caption font-medium tabular-nums ${selected ? "bg-gtm-text text-gtm-bg" : "bg-gtm-selected text-gtm-secondary"}`}
+                      aria-hidden
+                    >
+                      {selected ? <CheckIcon className="size-3.5" /> : i + 1}
+                    </span>
+                    <span className="min-w-0 flex-1">{opt.label}</span>
+                    {!off && !selected && (
+                      <ArrowRightIcon className="size-4 shrink-0 text-gtm-muted opacity-0 transition-opacity group-hover/opt:opacity-100 pointer-coarse:opacity-100" />
+                    )}
+                  </button>
+                </li>
               );
             })}
-          </div>
-        </div>
+          </ul>
+        </fieldset>
       ))}
     </div>
   );

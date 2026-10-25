@@ -2,16 +2,14 @@
 
 import { IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from "@mui/material";
 import { useColorScheme } from "@mui/material/styles";
-import CheckIcon from "@mui/icons-material/Check";
-import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
-import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
-import SettingsBrightnessOutlinedIcon from "@mui/icons-material/SettingsBrightnessOutlined";
+import { ComputerDesktopIcon, MoonIcon, SunIcon } from "@heroicons/react/24/outline";
+import { CheckIcon } from "@heroicons/react/20/solid";
 import { useState } from "react";
 
 const MODES = [
-  { id: "light", label: "Light", icon: <LightModeOutlinedIcon fontSize="small" /> },
-  { id: "dark", label: "Dark", icon: <DarkModeOutlinedIcon fontSize="small" /> },
-  { id: "system", label: "System", icon: <SettingsBrightnessOutlinedIcon fontSize="small" /> },
+  { id: "light", label: "Light", icon: <SunIcon className="size-5" /> },
+  { id: "dark", label: "Dark", icon: <MoonIcon className="size-5" /> },
+  { id: "system", label: "System", icon: <ComputerDesktopIcon className="size-5" /> },
 ] as const;
 
 /** App-wide appearance. MUI stores the choice and sets `.light` / `.dark` on <html>. */
@@ -23,7 +21,7 @@ export function ThemeToggle() {
     <>
       <Tooltip title="Appearance">
         <IconButton aria-label="Appearance" size="small" onClick={(e) => setAnchor(e.currentTarget)} disabled={!mode}>
-          {resolved === "dark" ? <DarkModeOutlinedIcon fontSize="small" /> : <LightModeOutlinedIcon fontSize="small" />}
+          {resolved === "dark" ? <MoonIcon className="size-5" /> : <SunIcon className="size-5" />}
         </IconButton>
       </Tooltip>
       <Menu
@@ -45,7 +43,7 @@ export function ThemeToggle() {
           >
             <ListItemIcon>{m.icon}</ListItemIcon>
             <ListItemText>{m.label}</ListItemText>
-            {mode === m.id && <CheckIcon fontSize="small" className="ml-3 text-gtm-muted" />}
+            {mode === m.id && <CheckIcon className="ml-3 size-4 text-gtm-muted" />}
           </MenuItem>
         ))}
       </Menu>

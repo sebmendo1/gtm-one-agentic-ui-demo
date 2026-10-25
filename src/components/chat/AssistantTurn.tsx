@@ -1,16 +1,19 @@
 "use client";
 
 import { Alert, Button } from "@mui/material";
+import { useCallback, useState } from "react";
 import { Activity } from "./Activity";
 import { Markdown } from "./Markdown";
 import { MessageBody, MessageFooter } from "./MessageView";
 import { ApprovalPrompt, ChoicePrompt } from "./Prompts";
+import { isFreshReply, markPlayed } from "./stream/fresh";
+import { useSimulatedStream } from "./stream/useSimulatedStream";
 import type { Turn } from "./useChat";
 
 export function UserBubble({ text }: { text: string }) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-[85%] rounded-3xl bg-gtm-subtle px-4 py-3 text-body leading-relaxed break-words whitespace-pre-wrap">{text}</div>
+      <div className="max-w-[80%] rounded-3xl bg-gtm-subtle px-4 py-2.5 text-body break-words whitespace-pre-wrap sm:max-w-[70%]">{text}</div>
     </div>
   );
 }
@@ -30,7 +33,21 @@ export function AssistantTurn({
   onRetry: () => void;
 }) {
   const live = turn.status === "streaming";
-  const current = <Activity activity={turn.activity} trace={turn.trace} live={live && !turn.draft} />;
+  const ready = turn.status === "ready" ? turn.message : null;
+  const [fresh] = useState(() => turn.origin !== "agent" && isFreshReply(turn.id, turn.createdAt));
+  const [settled, setSettled] = useState(!fresh);
+  const onSettled = useCallback(() => {
+    markPlayed(turn.id);
+    setSettled(true);
+  }, [turn.id]);
+  // A template reply arrives whole in `done`; it plays back through the simulated stream.
+  const replay = useSimulatedStream(ready?.markdown ?? "", fresh && ready?.writer.kind === "template");
+  const bodyFrame = live ? turn.frame : ready;
+  const source = live ? turn.draft : ready?.writer.kind === "template" ? replay.text : (ready?.markdown ?? "");
+  const sourceDone = !live && (ready?.writer.kind !== "template" || replay.done);
+
+  const seededIdle = turn.origin === "agent" && !live && turn.activity.steps.length === 0;
+  const current = seededIdle ? null : <Activity activity={turn.activity} trace={turn.trace} live={live && !turn.draft} />;
   const promptPending = (turn.question && !turn.question.prelude) || (turn.approval && !turn.approval.prelude);
   return (
     <div className="flex flex-col">
@@ -62,13 +79,12 @@ export function AssistantTurn({
 
       {!promptPending && current}
 
-      {live && turn.frame && <MessageBody markdown={turn.draft} frame={turn.frame} streaming />}
+      {bodyFrame && <MessageBody markdown={source} frame={bodyFrame} live={fresh} done={sourceDone} onSettled={onSettled} />}
 
-      {turn.status === "ready" && turn.message && (
-        <>
-          <MessageBody markdown={turn.message.markdown} frame={turn.message} streaming={false} />
-          <MessageFooter message={turn.message} onRetry={onRetry} />
-        </>
+      {ready && settled && (
+        <div className={fresh ? "gtm-enter" : undefined}>
+          <MessageFooter message={ready} onRetry={onRetry} />
+        </div>
       )}
 
       {turn.status === "error" && (

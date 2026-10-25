@@ -1,9 +1,9 @@
 "use client";
 
 import { Card, CardContent, Chip, Typography } from "@mui/material";
-import type { ReactNode } from "react";
+import { useContext, type ReactNode } from "react";
 import { SourceChips } from "../Cite";
-import { useFrame } from "../context";
+import { QuietEvidenceContext, useFrame } from "../context";
 
 export function WidgetCard({
   eyebrow,
@@ -21,6 +21,7 @@ export function WidgetCard({
   children: ReactNode;
 }) {
   const frame = useFrame();
+  const quiet = useContext(QuietEvidenceContext);
   return (
     <Card className="gtm-enter w-full">
       <CardContent className="p-4 last:pb-4 sm:p-5 sm:last:pb-5">
@@ -29,7 +30,7 @@ export function WidgetCard({
           <div className="min-w-0 flex-auto">
             <div className="flex items-center gap-2">
               <span className="gtm-eyebrow whitespace-nowrap">{eyebrow}</span>
-              {frame.source === "fixtures" && (
+              {frame.source === "fixtures" && !quiet && (
                 <Chip size="small" label="Demo data" variant="outlined" className="h-5 text-caption text-gtm-muted" />
               )}
             </div>

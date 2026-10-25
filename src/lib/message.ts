@@ -209,6 +209,20 @@ export function parseMessage(
   return blocks;
 }
 
+/** True while a streaming source ends inside a section `parseMessage` is still holding back. */
+export function pendingSection(source: string, frame: Pick<MessageFrame, "compose">): boolean {
+  const lines = source.split("\n");
+  const last = lines.at(-1) ?? "";
+  if (/^\s*<(?:u|ui|ui:)?$|^\s*<ui:/.test(last) && !TAG_LINE.test(last) && !COMPOSE_CLOSE.test(last)) return true;
+  if (!frame.compose) return false;
+  let open = false;
+  for (const line of lines) {
+    if (COMPOSE_OPEN.test(line)) open = true;
+    else if (COMPOSE_CLOSE.test(line)) open = false;
+  }
+  return open;
+}
+
 export function placedComponents(source: string): Set<string> {
   return new Set(
     source

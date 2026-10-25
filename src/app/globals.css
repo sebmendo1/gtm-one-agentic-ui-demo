@@ -22,8 +22,10 @@
   --gtm-emphasis: #c9211b;
   --gtm-success: #10b981;
   --gtm-warning: #f59e0b;
+  --gtm-hover: color-mix(in srgb, var(--gtm-text) 5%, transparent);
+  --gtm-selected: color-mix(in srgb, var(--gtm-text) 8%, transparent);
   --gtm-radius-lg: 8px;
-  --gtm-radius-xl: 12px;
+  --gtm-radius-xl: 16px;
 }
 
 .dark {
@@ -38,6 +40,8 @@
   --gtm-text-secondary: #d0d0de;
   --gtm-text-muted: #a0a0b0;
   --gtm-emphasis: #ff786c;
+  --gtm-hover: color-mix(in srgb, var(--gtm-text) 7%, transparent);
+  --gtm-selected: color-mix(in srgb, var(--gtm-text) 11%, transparent);
 }
 
 @theme inline {
@@ -55,15 +59,17 @@
   --color-gtm-emphasis: var(--gtm-emphasis);
   --color-gtm-success: var(--gtm-success);
   --color-gtm-warning: var(--gtm-warning);
+  --color-gtm-hover: var(--gtm-hover);
+  --color-gtm-selected: var(--gtm-selected);
   --radius-gtm: var(--gtm-radius-lg);
   --radius-gtm-xl: var(--gtm-radius-xl);
-  /* Type scale (docs/specs/02-design-system.md § Type): caption 11 · xs 12 · meta 13 · sm 14 · body 15. */
+  /* Type scale (docs/specs/02-design-system.md § Type): caption 11 · xs 12 · meta 13 · sm 14 · body 16. */
   --text-caption: 11px;
   --text-caption--line-height: 16px;
   --text-meta: 13px;
   --text-meta--line-height: 20px;
-  --text-body: 15px;
-  --text-body--line-height: 1.7;
+  --text-body: 16px;
+  --text-body--line-height: 1.75;
   --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
   --font-gtm-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
@@ -110,8 +116,8 @@
 
   /* Markdown inside assistant messages. */
   .gtm-prose {
-    font-size: 15px;
-    line-height: 1.7;
+    font-size: 16px;
+    line-height: 1.75;
     color: var(--gtm-text);
     overflow-wrap: break-word;
   }
@@ -122,15 +128,30 @@
   .gtm-prose h2,
   .gtm-prose h3 {
     font-weight: 600;
+    line-height: 1.4;
     letter-spacing: -0.01em;
-    margin-top: 1.25em;
+    margin-top: 1.5em;
+  }
+  .gtm-prose > :first-child {
+    margin-top: 0;
+  }
+  .gtm-prose h1 + *,
+  .gtm-prose h2 + *,
+  .gtm-prose h3 + * {
+    margin-top: 0.5em;
+  }
+  .gtm-prose h1 {
+    font-size: 1.5rem;
+  }
+  .gtm-prose h2 {
+    font-size: 1.25rem;
   }
   .gtm-prose h3 {
-    font-size: 1.05rem;
+    font-size: 1.125rem;
   }
   .gtm-prose ul,
   .gtm-prose ol {
-    padding-left: 1.4em;
+    padding-left: 1.5em;
   }
   .gtm-prose ul {
     list-style: disc;
@@ -139,7 +160,10 @@
     list-style: decimal;
   }
   .gtm-prose li + li {
-    margin-top: 0.3em;
+    margin-top: 0.25em;
+  }
+  .gtm-prose li::marker {
+    font-variant-numeric: tabular-nums;
   }
   .gtm-prose li::marker {
     color: var(--gtm-text-muted);
@@ -197,6 +221,71 @@
   }
   .gtm-enter {
     animation: gtm-fade-in 0.42s ease-out both;
+    animation-delay: var(--gtm-delay, 0ms);
+  }
+
+  /* Onboarding steps slide in from the side they came from. */
+  @keyframes gtm-slide-next {
+    from {
+      opacity: 0;
+      transform: translateX(16px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes gtm-slide-back {
+    from {
+      opacity: 0;
+      transform: translateX(-16px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .gtm-slide-next,
+  .gtm-slide-back {
+    animation: gtm-slide-next 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: var(--gtm-delay, 0ms);
+  }
+  .gtm-slide-back {
+    animation-name: gtm-slide-back;
+  }
+
+  /* A finished item lands with a small overshoot: checks, chips, badges. */
+  @keyframes gtm-pop {
+    0% {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    60% {
+      opacity: 1;
+      transform: scale(1.12);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  .gtm-pop {
+    animation: gtm-pop 0.36s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: var(--gtm-delay, 0ms);
+  }
+
+  /* Bars and meters fill from the left. */
+  @keyframes gtm-grow-x {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+  .gtm-grow-x {
+    transform-origin: left;
+    animation: gtm-grow-x 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: var(--gtm-delay, 0ms);
   }
 
   @keyframes gtm-shimmer {
@@ -218,9 +307,125 @@
       gtm-shimmer 1.8s linear infinite;
   }
 
+  /* Live agent: a soft ring breathing out from the avatar or status dot. */
+  @keyframes gtm-pulse {
+    0% {
+      box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 45%, transparent);
+    }
+    70% {
+      box-shadow: 0 0 0 6px transparent;
+    }
+    100% {
+      box-shadow: 0 0 0 0 transparent;
+    }
+  }
+  .gtm-pulse {
+    animation: gtm-pulse 1.6s ease-out infinite;
+  }
+
+  /* The timeline dissolves under the composer slot instead of being cut at its top edge. */
+  .gtm-composer-fade {
+    position: relative;
+  }
+  .gtm-composer-fade::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: 100%;
+    height: 32px;
+    background: linear-gradient(to bottom, transparent, var(--gtm-bg));
+    pointer-events: none;
+  }
+
+  /* Clamped card bodies fade into the background instead of cutting mid-line. */
+  .gtm-fade-bottom {
+    -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent);
+    mask-image: linear-gradient(to bottom, #000 70%, transparent);
+  }
+
+  /*
+   * Streaming (docs/specs/02-design-system.md § Streaming). Each newly revealed word fades and
+   * un-blurs in place. Only opacity and filter animate, so a word holds its final spot in the line
+   * from the first frame, and wrapping never jumps.
+   */
+  @keyframes gtm-token-in {
+    from {
+      opacity: 0;
+      filter: blur(2px);
+    }
+    to {
+      opacity: 1;
+      filter: none;
+    }
+  }
+  .gtm-token {
+    animation: gtm-token-in var(--gtm-token-fade, 120ms) ease-out both;
+  }
+  .gtm-caret {
+    display: inline-block;
+    width: 2px;
+    height: 1.1em;
+    margin-left: 2px;
+    margin-right: -4px;
+    vertical-align: -0.18em;
+    border-radius: 1px;
+    background: currentColor;
+  }
+  @keyframes gtm-caret-blink {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.15;
+    }
+  }
+  .gtm-caret-blink {
+    animation: gtm-caret-blink 1s ease-in-out infinite;
+  }
+
+  /* A card focused from the work panel flashes once so the eye lands on it. */
+  @keyframes gtm-highlight {
+    0%,
+    40% {
+      background-color: color-mix(in srgb, var(--gtm-emphasis) 8%, transparent);
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+  .gtm-highlight {
+    animation: gtm-highlight 1.6s ease-out both;
+  }
+
+  /* A row that just completed glows once; staggerable, so a list can light up in order. */
+  @keyframes gtm-flash {
+    0%,
+    100% {
+      background-color: transparent;
+    }
+    30% {
+      background-color: color-mix(in srgb, var(--gtm-success) 12%, transparent);
+    }
+  }
+  .gtm-flash {
+    animation: gtm-flash 1.1s ease-out both;
+    animation-delay: var(--gtm-delay, 0ms);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .gtm-enter,
-    .gtm-shimmer {
+    .gtm-slide-next,
+    .gtm-slide-back,
+    .gtm-pop,
+    .gtm-grow-x,
+    .gtm-flash,
+    .gtm-shimmer,
+    .gtm-pulse,
+    .gtm-highlight,
+    .gtm-token,
+    .gtm-caret-blink,
+    .MuiSkeleton-wave::after {
       animation: none;
     }
     .gtm-shimmer {

@@ -60,6 +60,6 @@ export function followUpsFor(job: GtmJob | null, entity: EntityRef, data: Fixtur
 }
 
 export const PROSE_FOLLOW_UPS: FollowUp[] = [
-  { label: "Try a demo brief", prompt: "Account research brief for Snowflake before a call" },
-  { label: "Show our GTM context", prompt: "Show our GTM context — offerings, personas, ICP, and competitors" },
+  { label: "Prep my Snowflake meeting", prompt: "Brief me before my call with Snowflake" },
+  { label: "Map the Stripe buying committee", prompt: "Map the buying committee at Stripe" },
 ];

@@ -2,7 +2,7 @@
 
 import { Chip, Tooltip } from "@mui/material";
 import { useContext } from "react";
-import { FrameContext } from "./context";
+import { FrameContext, QuietEvidenceContext } from "./context";
 
 function shortLabel(label: string | undefined): string {
   return label?.split(" · ")[0] ?? "source";
@@ -11,8 +11,9 @@ function shortLabel(label: string | undefined): string {
 /** Inline citation pill: the first source's name, `+n` for more, full ids in the tooltip. */
 export function Cite({ ids }: { ids: string[] }) {
   const frame = useContext(FrameContext);
+  const quiet = useContext(QuietEvidenceContext);
   const clean = ids.filter(Boolean);
-  if (!clean.length) return null;
+  if (!clean.length || quiet) return null;
   const sources = frame?.sources ?? {};
   const title = clean.map((id) => `${id} · ${sources[id] ?? "evidence"}`).join("\n");
   return (
@@ -30,7 +31,8 @@ export function Cite({ ids }: { ids: string[] }) {
 
 /** Source pills under a component. */
 export function SourceChips({ ids }: { ids: string[] | undefined }) {
-  if (!ids?.length) return null;
+  const quiet = useContext(QuietEvidenceContext);
+  if (!ids?.length || quiet) return null;
   return (
     <div className="mt-3 flex flex-wrap items-center gap-1">
       <span className="mr-1 text-caption text-gtm-muted">Sources</span>

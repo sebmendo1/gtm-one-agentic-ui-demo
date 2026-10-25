@@ -15,6 +15,7 @@ Read in order for implementation:
 | [08-zoominfo-gtm-platform.md](./08-zoominfo-gtm-platform.md) | Domain model: ZoomInfo, the GTM platform, GTM AI surfaces, Context Agents, credits |
 | [09-guardrails.md](./09-guardrails.md) | Safety and prompt-injection guardrails: harm filters, untrusted-data fencing, link sanitization, approval, request limits |
 | [10-agent-readiness.md](./10-agent-readiness.md) | How the site serves AI agents: Markdown negotiation, Markdown 404s, llms.txt, sitemap, robots, JSON-LD, metadata |
+| [11-always-on-agent.md](./11-always-on-agent.md) | Always-on Go-to-agent hub, AE persona, agents, sweep API, activation/growth, demo clock |
 
 Sources behind these specs live in [external-sources](../external-sources/), starting with the [ZoomInfo and GTM AI knowledge base](../external-sources/zoominfo-gtm-ai-knowledge-base.md).
 

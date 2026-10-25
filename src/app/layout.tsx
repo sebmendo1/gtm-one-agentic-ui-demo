@@ -45,7 +45,8 @@ const JSON_LD = JSON.stringify(siteJsonLd()).replace(/</g, "\\u003c");
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" suppressHydrationWarning className={`h-full antialiased ${figtree.variable} ${jetbrainsMono.variable}`}>
-      <body className="flex min-h-full flex-col">
+      {/* Browser extensions add attributes to <body> before hydration. */}
+      <body className="flex min-h-full flex-col" suppressHydrationWarning>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON_LD }} />
         <InitColorSchemeScript attribute="class" defaultMode="light" modeStorageKey={MODE_STORAGE_KEY} />
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>

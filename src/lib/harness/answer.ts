@@ -4,6 +4,7 @@ import type { HistoryEntry } from "../spec";
 import { GEMINI_PROVIDER_OPTIONS, SAFETY_BLOCKED, WRITER_TIMEOUT, addUsage, geminiErrorText, geminiModel, type TokenTally } from "./gemini";
 import { SCOPE_RULES } from "./guardrails";
 import { PLATFORM_RULES, knowledgeDocs } from "./knowledge";
+import { SELLER_PROSE_RULES } from "./persona";
 
 const TEMPLATE = `This app already includes the GTM CLI, so there's nothing to install — you only need to sign in:
 
@@ -34,6 +35,7 @@ export async function answerProse(input: {
       providerOptions: GEMINI_PROVIDER_OPTIONS,
       instructions: [
         "You are GTM AI, a conversational assistant. You answer questions about ZoomInfo and GTM AI: the GTM platform and its products, Context Agents, Skills, the Context Graph, data and credits, installing the GTM CLI or ZoomInfo MCP, and how this chat app works.",
+        ...SELLER_PROSE_RULES,
         ...SCOPE_RULES,
         "Answer only from the references below. If they do not cover the question, say so and link https://gtm.ai/docs. Where the knowledge base marks something as inferred or unconfirmed, say so.",
         "Reply like a helpful colleague in chat. GitHub-flavored Markdown: short paragraphs or numbered steps, commands in inline code or fenced code blocks, no headings for short answers.",

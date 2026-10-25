@@ -36,7 +36,7 @@ export const GTM_DARK = {
   warning: "#F59E0B",
 } as const;
 
-export const GTM_SHAPE = { radiusLg: 8, radiusXl: 12 } as const;
+export const GTM_SHAPE = { radiusLg: 8, radiusXl: 16 } as const;
 
 export const GTM_FONTS = {
   sans: 'var(--font-figtree), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
