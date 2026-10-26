@@ -4,15 +4,23 @@ import { CircularProgress, IconButton, LinearProgress, Tooltip } from "@mui/mate
 import { BellAlertIcon, CalendarDaysIcon, CheckBadgeIcon, EyeIcon as EyeOutlineIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { SidebarIcon } from "@/components/chat/Sidebar";
 import { BoltIcon, CheckCircleIcon, ChevronRightIcon, EyeIcon } from "@heroicons/react/20/solid";
-import { nudgeContent, scheduledFollowUp } from "@/lib/agents/nudges";
+import { nudgeContent } from "@/lib/agents/nudges";
 import type { ReactNode } from "react";
-import { accountLabel, PERSONA_DEALS, PERSONA_GOAL } from "@/lib/agents/fixtures";
+import { accountLabel, PERSONA_GOAL } from "@/lib/agents/fixtures";
 import { formatTime, hourOf } from "@/lib/agents/time";
-import type { Workspace } from "@/lib/agents/types";
-import { doneItems, formatAmount, formatCloseDate, needsYou, nextStepFor, runTitle, SETUP_STEPS, upcomingMeetings, type MeetingPrep } from "@/lib/agents/work";
+import type { Workspace, WorkspaceMilestone } from "@/lib/agents/types";
+import { committedOf, dealsOf, doneItems, formatAmount, formatCloseDate, needsYou, nextStepFor, runTitle, scheduledFollowUp, SETUP_STEPS, upcomingMeetings, type MeetingPrep } from "@/lib/agents/work";
 import { AgentAvatar } from "./AgentAvatar";
 import { StatusPill } from "./AgentMessage";
 import { DealStagePill } from "./DealStage";
+
+const SETUP_ACTION: Record<WorkspaceMilestone, string> = {
+  connected: "Connect",
+  firstSweep: "Run now",
+  activated: "Open",
+  shared: "Share",
+  invited: "Invite",
+};
 
 const PREP_DOT: Record<MeetingPrep, string> = {
   ready: "bg-gtm-success",
@@ -71,7 +79,7 @@ export function WorkPanel({
   researching,
   onFocusRun,
   onFocusNudge,
-  onInviteAdmin,
+  onSetupAction,
   onClose,
   inline,
 }: {
@@ -83,7 +91,7 @@ export function WorkPanel({
   researching: string | null;
   onFocusRun: (runId: string) => void;
   onFocusNudge: (nudgeId: string) => void;
-  onInviteAdmin: () => void;
+  onSetupAction: (key: WorkspaceMilestone) => void;
   onClose: () => void;
 }) {
   const now = workspace.demoNow;
@@ -93,7 +101,8 @@ export function WorkPanel({
   const headsUps = workspace.nudges.filter((n) => n.status === "new");
   const followUp = scheduledFollowUp(workspace);
   const setupDone = SETUP_STEPS.filter((s) => workspace.milestones[s.key]).length;
-  const goalPct = Math.round((PERSONA_GOAL.committed / PERSONA_GOAL.target) * 100);
+  const committed = committedOf(workspace);
+  const goalPct = Math.round((Math.min(committed, PERSONA_GOAL.target) / PERSONA_GOAL.target) * 100);
 
   const railed = Boolean(inline?.collapsed);
   const active = sweeping || Boolean(researching);
@@ -112,12 +121,12 @@ export function WorkPanel({
               </IconButton>
             </Tooltip>
           </div>
-          <Tooltip title={`${PERSONA_GOAL.quarterLabel} goal · ${PERSONA_GOAL.committed} of ${PERSONA_GOAL.target} in commit`} placement="left">
+          <Tooltip title={`${PERSONA_GOAL.quarterLabel} goal · ${committed} of ${PERSONA_GOAL.target} in commit`} placement="left">
             <span className="relative mb-2 flex size-10 items-center justify-center">
               <CircularProgress variant="determinate" value={100} size={28} thickness={4} className="absolute text-gtm-selected" />
               <CircularProgress variant="determinate" value={goalPct} size={28} thickness={4} className="text-gtm-text" />
               <span className="absolute text-[10px] font-semibold tabular-nums">
-                {PERSONA_GOAL.committed}/{PERSONA_GOAL.target}
+                {committed}/{PERSONA_GOAL.target}
               </span>
             </span>
           </Tooltip>
@@ -169,12 +178,12 @@ export function WorkPanel({
               />
               <p className="mt-2 flex justify-between text-meta text-gtm-muted">
                 <span>
-                  {PERSONA_GOAL.committed} of {PERSONA_GOAL.target} in commit
+                  {committed} of {PERSONA_GOAL.target} in commit
                 </span>
                 <span className="tabular-nums">{goalPct}%</span>
               </p>
               <ul className="mt-4 flex flex-col gap-2.5 border-t border-gtm-border/60 pt-3" aria-label="Your deals">
-                {PERSONA_DEALS.map((deal) => (
+                {dealsOf(workspace).map((deal) => (
                   <li key={deal.accountKey} className="flex items-center gap-2">
                     <span className="min-w-0 flex-1 leading-tight">
                       <span className="block truncate text-sm font-medium">{deal.name}</span>
@@ -186,7 +195,9 @@ export function WorkPanel({
                   </li>
                 ))}
               </ul>
-              <p className="mt-3 text-caption text-gtm-muted">Self-reported until Salesforce connects</p>
+              <p className="mt-3 text-caption text-gtm-muted">
+                {workspace.milestones.invited ? "Self-reported · invite sent, waiting on your Salesforce admin" : "Self-reported until Salesforce connects"}
+              </p>
             </div>
 
             <Section title="Needs you" count={waiting.length + headsUps.length}>
@@ -302,7 +313,6 @@ export function WorkPanel({
               <Section title={`Setup · ${setupDone} of ${SETUP_STEPS.length}`}>
                 {SETUP_STEPS.map((step) => {
                   const complete = Boolean(workspace.milestones[step.key]);
-                  const actionable = step.key === "invited" && !complete;
                   return (
                     <Row
                       key={step.key}
@@ -314,8 +324,8 @@ export function WorkPanel({
                         )
                       }
                       title={<span className={complete ? "font-normal text-gtm-muted line-through decoration-gtm-border" : ""}>{step.label}</span>}
-                      trailing={actionable ? <span className="text-meta font-medium text-gtm-emphasis">Invite</span> : undefined}
-                      onClick={actionable ? onInviteAdmin : undefined}
+                      trailing={complete ? undefined : <span className="text-meta font-medium text-gtm-emphasis">{SETUP_ACTION[step.key]}</span>}
+                      onClick={complete ? undefined : () => onSetupAction(step.key)}
                     />
                   );
                 })}

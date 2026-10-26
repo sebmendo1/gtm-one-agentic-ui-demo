@@ -33,7 +33,8 @@ export function approvalLead(request: ApprovalRequest, resolved: boolean): strin
   const paid = request.steps.filter((s) => !s.executed);
   const opener = resolved ? `I found **${name}** with a free search.` : `I can research **${name}**.`;
   const what = paid.map((s) => s.reason.charAt(0).toLowerCase() + s.reason.slice(1)).join(", and ");
-  const cost = request.source === "fixtures" ? "This is demo data, so nothing is charged." : "These spend your ZoomInfo credits.";
+  const estimate = request.estimate.replace(/^Estimate:\s*/, "").replace(/\.\s*Actual charges.*$/, "");
+  const cost = estimate && estimate !== "Free" ? `That uses ${estimate} from your balance.` : "These spend your ZoomInfo credits.";
   return `${opener} To finish the ${jobLabel(request.job).toLowerCase()}, I'd run ${paid.length} more GTM call${paid.length === 1 ? "" : "s"}: ${what}. ${cost} Want me to go ahead?`;
 }
 

@@ -9,11 +9,15 @@ export function formatDayTime(ms: number): string {
   return new Date(ms).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: PERSONA_TIME_ZONE });
 }
 
+export function formatShortDate(ms: number): string {
+  return new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: PERSONA_TIME_ZONE });
+}
+
 export function formatLongDate(ms: number): string {
   return new Date(ms).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: PERSONA_TIME_ZONE });
 }
 
-function dayKey(ms: number): string {
+export function dayKey(ms: number): string {
   return new Date(ms).toLocaleDateString("en-US", { timeZone: PERSONA_TIME_ZONE });
 }
 

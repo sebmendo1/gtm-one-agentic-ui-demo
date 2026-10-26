@@ -5,6 +5,7 @@ import { messagePlainText, type AssistantMessage, type MessageFrame } from "@/li
 import { nextFrame } from "@/lib/stream/frame";
 import { HUB_CONVERSATION_ID, type AgentId, type AgentRun } from "@/lib/agents/types";
 import { agentDisplayName } from "@/lib/agents/catalog";
+import { spacedKey } from "@/lib/storage-space";
 import type {
   ApprovalDecision,
   ApprovalRequest,
@@ -56,7 +57,7 @@ export function isSubChat(c: Conversation): boolean {
   return c.id !== HUB_CONVERSATION_ID;
 }
 
-const HISTORY_KEY = "gtm-chat-history-v2";
+const HISTORY_KEY = "gtm-chat-history-v3";
 
 function now(): number {
   return Date.now();
@@ -92,7 +93,7 @@ function blankTurn(id: string, prompt: string): Turn {
 
 function readHistory(): { conversations: Conversation[]; activeId: string | null } {
   try {
-    const raw = localStorage.getItem(HISTORY_KEY);
+    const raw = localStorage.getItem(spacedKey(HISTORY_KEY));
     if (!raw) return { conversations: [], activeId: null };
     const parsed = JSON.parse(raw) as { conversations?: Conversation[]; activeId?: string | null };
     const conversations = (parsed.conversations ?? []).map((c) => ({
@@ -181,7 +182,7 @@ export function useChat() {
   useEffect(() => {
     if (!ready || busy) return;
     try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify({ conversations: conversations.map(latestCarryOnly), activeId }));
+      localStorage.setItem(spacedKey(HISTORY_KEY), JSON.stringify({ conversations: conversations.map(latestCarryOnly), activeId }));
     } catch {
       // Over quota: keep the session working; history just isn't saved this time.
     }

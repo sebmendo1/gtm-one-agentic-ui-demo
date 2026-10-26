@@ -10,7 +10,7 @@ import {
   accountLabel,
   type CalendarEvent,
 } from "./fixtures";
-import { relativeMeeting } from "./time";
+import { formatShortDate, relativeMeeting } from "./time";
 import type { AgentId, AgentTrigger, SweepInput } from "./types";
 
 const MS_DAY = 86_400_000;
@@ -24,7 +24,7 @@ export interface TriggerCandidate {
   trigger: AgentTrigger;
   freeSteps: PlanStep[];
   paidSteps: PlanStep[];
-  primaryAction: { label: string; kind: "copy_talk_track" | "copy_draft" | "copy_note" | "approve" };
+  primaryAction: { label: string; kind: "copy_talk_track" | "send_reply" | "add_to_brief" | "copy_note" | "approve" };
 }
 
 function flag(name: string, ...values: string[]) {
@@ -33,7 +33,7 @@ function flag(name: string, ...values: string[]) {
 
 function entityForAccount(key: string): EntityRef {
   const company = accountLabel(key);
-  const domain = key === "snowflake" ? "snowflake.com" : key === "stripe" ? "stripe.com" : "salesforce.com";
+  const domain = key === "snowflake" ? "snowflake.com" : key === "stripe" ? "stripe.com" : "datadoghq.com";
   return { company, contact: null, domain, competitor: null };
 }
 
@@ -165,7 +165,7 @@ export function detectTriggers(input: SweepInput): TriggerCandidate[] {
         },
         freeSteps: steps.free,
         paidSteps: steps.paid,
-        primaryAction: { label: "Copy outreach note", kind: "copy_note" },
+        primaryAction: { label: "Add to talk track", kind: "add_to_brief" },
       });
     }
   }
@@ -187,14 +187,14 @@ export function detectTriggers(input: SweepInput): TriggerCandidate[] {
       job: "draft",
       entity,
       trigger: {
-        line: `**${thread.fromName}** at ${accountLabel(thread.accountKey)} emailed ${Math.floor((now - thread.receivedMs) / MS_DAY)} days ago — still no reply`,
+        line: `**${thread.fromName}** at ${accountLabel(thread.accountKey)} emailed ${formatShortDate(thread.receivedMs)}, ${Math.floor((now - thread.receivedMs) / MS_DAY)} days ago — still no reply`,
         sources: ["gmail", "zoominfo"],
         at: thread.receivedMs,
         meta: { threadId: thread.id },
       },
       freeSteps: steps.free,
       paidSteps: steps.paid,
-      primaryAction: { label: "Copy draft", kind: "copy_draft" },
+      primaryAction: { label: "Approve & send", kind: "send_reply" },
     });
   }
 

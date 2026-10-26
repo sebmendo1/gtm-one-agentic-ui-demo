@@ -45,7 +45,7 @@ export default function SharePage() {
         )}
         <div className="mt-10 rounded-gtm-xl border border-gtm-border bg-gtm-surface p-6">
           <Markdown markdown="**Get your own Go-to-agent** — proactive meeting prep and follow-ups on ZoomInfo GTM AI." />
-          <Link href="/" className="mt-4 inline-block rounded-gtm bg-gtm-cta px-4 py-2 text-sm font-medium text-white hover:bg-gtm-cta-hover">
+          <Link href="/?new=1" className="mt-4 inline-block rounded-gtm bg-gtm-cta px-4 py-2 text-sm font-medium text-white hover:bg-gtm-cta-hover">
             Start free
           </Link>
         </div>

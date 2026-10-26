@@ -9,7 +9,8 @@ import { AssistantTurn, UserBubble } from "@/components/chat/AssistantTurn";
 import { Composer } from "@/components/chat/Composer";
 import { ChatActionsContext } from "@/components/chat/context";
 import { BrandMark, Sidebar } from "@/components/chat/Sidebar";
-import { useChat } from "@/components/chat/useChat";
+import { useChat, type Turn } from "@/components/chat/useChat";
+import type { ApprovalDecision } from "@/lib/spec";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { AgentAvatar } from "@/components/agent/AgentAvatar";
 import { GoToAgentView } from "@/components/agent/GoToAgentView";
@@ -20,21 +21,24 @@ import { useWorkspace } from "@/components/agent/useWorkspace";
 import { WatchSuggestion } from "@/components/agent/WatchSuggestion";
 import { WorkPanel } from "@/components/agent/WorkPanel";
 import { agentDisplayName } from "@/lib/agents/catalog";
-import { DEFAULT_WATCHLIST } from "@/lib/agents/fixtures";
-import { canRaise, nextIdleNudge, nudgeContent } from "@/lib/agents/nudges";
+import { CALENDAR_EVENTS, DEFAULT_WATCHLIST, type PersonaDeal } from "@/lib/agents/fixtures";
+import { nextIdleNudge, nudgeContent } from "@/lib/agents/nudges";
 import { completeTasks } from "@/lib/agents/tasks";
 import { formatTime } from "@/lib/agents/time";
 import { HUB_CONVERSATION_ID } from "@/lib/agents/types";
-import type { AgentNudge, AgentRun, NudgeKey } from "@/lib/agents/types";
-import { needsYou, threadStarters } from "@/lib/agents/work";
+import type { AgentNudge, AgentRun, NudgeKey, WorkspaceMilestone } from "@/lib/agents/types";
+import { approvalCredits, needsYouCount, threadStarters } from "@/lib/agents/work";
 
 const FOCUS_MS = 1700;
 /** Quiet time after a check-in before the agent raises what it noticed on its own. */
 const NUDGE_IDLE_MS = 4000;
-const NUDGE_AFTER_ACTION_MS = 1200;
 const LAYOUT_KEY = "gtm-layout-v1";
 
 type Layout = { left: boolean; right: boolean };
+
+function attendeeEmail(name: string | undefined): string | undefined {
+  return name ? CALENDAR_EVENTS.flatMap((e) => e.attendees).find((a) => a.name === name)?.email : undefined;
+}
 
 function AgentStatus({ working, lastSweepAt }: { working: boolean; lastSweepAt?: number }) {
   return (
@@ -175,7 +179,7 @@ export default function Home() {
   };
 
   const hubConversation = chat.conversations.find((c) => c.id === HUB_CONVERSATION_ID) ?? null;
-  const waitingCount = needsYou(ws.workspace).length + ws.workspace.nudges.filter((n) => n.status === "new").length;
+  const waitingCount = needsYouCount(ws.workspace);
   const panelInline = isHub && !collapsed.right;
   const hubResearching = hubConversation?.turns.findLast((t) => t.status === "streaming" && !t.local)?.prompt ?? null;
 
@@ -208,6 +212,25 @@ export default function Home() {
     hubReply("I sent your Salesforce admin an invite. Once they connect, Deal Watch will use pipeline stage and close dates, not just signals.");
   };
 
+  /** Each Setup item takes the AE straight to the action that completes it. */
+  const setupAction = (key: WorkspaceMilestone) => {
+    const runs = ws.workspace.runs;
+    const brief = runs.find((r) => r.agentId === "meeting_prep" && r.message);
+    if (key === "invited") inviteAdmin();
+    else if (key === "firstSweep" || key === "connected") void ws.sweep();
+    else if (key === "shared" && brief) setShareRun(brief);
+    else if (key === "activated") {
+      const target = runs.find((r) => r.status === "ready" && r.primaryAction.kind === "send_reply") ?? runs.find((r) => r.status === "ready");
+      if (target) focusRun(target.id);
+    }
+  };
+
+  /** Approving paid research spends the estimated data credits. */
+  const decide = (conversationId: string, turn: Turn, decision: ApprovalDecision["decision"]) => {
+    if (decision === "approved") ws.spendCredits(approvalCredits(turn.approval?.request));
+    chat.decide(conversationId, turn, decision);
+  };
+
   const restartDemo = () => {
     ws.resetDemo();
     chat.resetAll();
@@ -217,9 +240,9 @@ export default function Home() {
   };
 
   const handleOnboardingComplete = useCallback(
-    (input: { watchlist: string[]; budget: { dataCreditsPerDay: number; allowDataAutopilot: boolean } }) => {
+    (input: { watchlist: string[]; budget: { dataCreditsPerDay: number; allowDataAutopilot: boolean }; deals: PersonaDeal[] }) => {
       ws.completeOnboarding(input.watchlist);
-      ws.patch((w) => ({ ...w, budget: input.budget }));
+      ws.patch((w) => ({ ...w, budget: input.budget, deals: input.deals }));
       chat.openHub();
       sweptRef.current = false;
     },
@@ -229,13 +252,11 @@ export default function Home() {
   const handlePrimary = useCallback(
     (run: AgentRun) => {
       ws.markMilestone("activated");
-      ws.updateRun(run.id, (r) => ({ ...r, status: "done", seenAt: r.seenAt ?? Date.now() }));
+      const sentAt = run.primaryAction.kind === "send_reply" ? ws.workspace.demoNow : undefined;
+      ws.updateRun(run.id, (r) => ({ ...r, status: "done", seenAt: r.seenAt ?? Date.now(), sentAt }));
       if (run.agentId === "meeting_prep" && run.trigger.meta?.shareWith && !ws.workspace.milestones.shared) setShareRun(run);
-      if (run.agentId === "follow_up_nudge" && canRaise(ws.workspace, "reply_watch")) {
-        setTimeout(() => raise("reply_watch"), NUDGE_AFTER_ACTION_MS);
-      }
     },
-    [ws, raise],
+    [ws],
   );
 
   const handleNudge = (nudge: AgentNudge, choice: "accepted" | "dismissed") => {
@@ -282,7 +303,7 @@ export default function Home() {
         setPanelDrawer(false);
         document.getElementById(`nudge-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
       }}
-      onInviteAdmin={inviteAdmin}
+      onSetupAction={setupAction}
       onClose={onClose}
     />
   );
@@ -300,7 +321,7 @@ export default function Home() {
             conversations={chat.conversations}
             activeId={chat.activeId}
             workspace={ws.workspace}
-            hubUnseen={ws.unseenCount}
+            hubUnseen={waitingCount}
             onOpenHub={() => {
               chat.openHub();
               closeOnMobile();
@@ -380,8 +401,12 @@ export default function Home() {
               onOpenRun={openRun}
               onUpdateRun={ws.updateRun}
               onHubAnswer={(turn, q, o) => chat.answerQuestion(HUB_CONVERSATION_ID, turn, q, o)}
-              onHubDecide={(turn, d) => chat.decide(HUB_CONVERSATION_ID, turn, d)}
+              onHubDecide={(turn, d) => decide(HUB_CONVERSATION_ID, turn, d)}
               onNudge={handleNudge}
+              onSkipToMorning={() => {
+                ws.simulateOvernight();
+                void ws.sweep();
+              }}
               onPrimary={handlePrimary}
               onShare={setShareRun}
             />
@@ -448,7 +473,7 @@ export default function Home() {
                         turn={turn}
                         busy={chat.busy}
                         onAnswer={(q, o) => chat.active && chat.answerQuestion(chat.active.id, turn, q, o)}
-                        onDecide={(d) => chat.active && chat.decide(chat.active.id, turn, d)}
+                        onDecide={(d) => chat.active && decide(chat.active.id, turn, d)}
                         onRetry={() => chat.send(turn.prompt || "Try again")}
                       />
                     </div>
@@ -461,7 +486,7 @@ export default function Home() {
                           ? "snowflake"
                           : lastEntity!.toLowerCase().includes("stripe")
                             ? "stripe"
-                            : "salesforce";
+                            : "datadog";
                         ws.patch((w) => ({ ...w, watchlist: [...new Set([...w.watchlist, key])] }));
                         hubReply(`Now watching **${lastEntity}**. I'll post here when there's an overnight signal or an email waiting on you.`);
                         chat.markAgentTouched(chat.active!.id);
@@ -505,14 +530,18 @@ export default function Home() {
         run={shareRun}
         suggestedName={shareRun?.trigger.meta?.shareWith?.name}
         suggestedRole={shareRun?.trigger.meta?.shareWith?.role}
+        suggestedEmail={attendeeEmail(shareRun?.trigger.meta?.shareWith?.name)}
         onClose={() => {
           setShareRun(null);
           setShareNudgeId(null);
         }}
-        onShared={() => {
+        onShared={(channel) => {
           ws.markMilestone("shared");
           const pending = shareNudgeId ?? ws.workspace.nudges.find((n) => n.key === "loop_in_se" && n.status === "new")?.id;
           if (pending) ws.resolveNudge(pending, "accepted");
+          const who = shareRun?.trigger.meta?.shareWith?.name ?? "your teammate";
+          const how = channel === "email" ? "by email" : channel === "slack" ? "in Slack" : "as a read-only link";
+          hubReply(`Sent the **${shareRun?.entity.company ?? ""} brief** to ${who} ${how}. They can read it without signing in, and start their own Go-to-agent from it.`);
         }}
       />
 
@@ -561,9 +590,7 @@ export default function Home() {
         }}
         onReplay={restartDemo}
         onHeadsUp={() => {
-          const key =
-            nextIdleNudge(ws.workspace) ??
-            (canRaise(ws.workspace, "reply_watch") && ws.workspace.runs.some((r) => r.agentId === "follow_up_nudge") ? "reply_watch" : null);
+          const key = nextIdleNudge(ws.workspace);
           if (key) raise(key);
         }}
       />

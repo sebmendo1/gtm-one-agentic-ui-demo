@@ -111,20 +111,31 @@ export async function runAgentCandidate(
     onStart: () => {},
   };
 
+  // Lookups that cost credits (company enrich, signals) run on autopilot only while today's budget lasts;
+  // otherwise they wait for approval with the rest of the paid steps.
+  const isData = (step: PlanStep) => COMMANDS[step.command].cost === "data";
+  const metered = candidate.freeSteps.filter(isData);
+  const budgetLeft = input.budget.allowDataAutopilot ? Math.max(0, input.autopilotLeft ?? input.budget.dataCreditsPerDay) : 0;
+  const overBudget = metered.length > budgetLeft;
+  const freeSteps = overBudget ? candidate.freeSteps.filter((s) => !isData(s)) : candidate.freeSteps;
+  const paidSteps = overBudget ? [...metered, ...candidate.paidSteps] : candidate.paidSteps;
+
   await executeStep(ledger, CONTEXT_STEP);
-  for (const step of candidate.freeSteps) {
-    if (stepNeeds(step).every((key) => ledger.ctx[key] || candidate.freeSteps.some((p) => p !== step && produces(p, key)))) {
+  for (const step of freeSteps) {
+    if (stepNeeds(step).every((key) => ledger.ctx[key] || freeSteps.some((p) => p !== step && produces(p, key)))) {
       await executeStep(ledger, step);
     }
   }
 
-  const paidResolvable = candidate.paidSteps.filter((step) =>
-    stepNeeds(step).every((key) => ledger.ctx[key] || candidate.paidSteps.some((p) => p !== step && produces(p, key))),
+  const paidResolvable = paidSteps.filter((step) =>
+    stepNeeds(step).every((key) => ledger.ctx[key] || paidSteps.some((p) => p !== step && produces(p, key))),
   );
   const hasAi = paidResolvable.some((s) => COMMANDS[s.command].cost === "ai");
-  const dataPaid = paidResolvable.filter((s) => COMMANDS[s.command].cost === "data");
+  const dataPaid = paidResolvable.filter(isData);
   const autopilotOk =
-    input.budget.allowDataAutopilot && dataPaid.length > 0 && !hasAi && dataPaid.length <= input.budget.dataCreditsPerDay;
+    !overBudget && input.budget.allowDataAutopilot && dataPaid.length > 0 && !hasAi && metered.length + dataPaid.length <= budgetLeft;
+  const spent = () => ledger.items.filter((e) => e.cost === "data" && (e.status === "ok" || e.status === "empty")).length;
+  const billed = (extra: PlanStep[]) => [...(overBudget ? [] : metered), ...extra];
 
   if (paidResolvable.length > 0 && !autopilotOk) {
     const request: ApprovalRequest = {
@@ -133,9 +144,9 @@ export async function runAgentCandidate(
       jobProbabilities: { [candidate.job]: 1 },
       entity: candidate.entity,
       source: "fixtures",
-      steps: approvalSteps(ledger, candidate.freeSteps, paidResolvable),
+      steps: approvalSteps(ledger, freeSteps, paidResolvable),
       estimate: planEstimate(paidResolvable),
-      note: "Fixture mode: approving runs demo data only. AI research always asks separately.",
+      note: "These steps spend your ZoomInfo credits. AI research always asks separately.",
       planner: { kind: "default", model: null },
       evidence: signEvidence({ job: candidate.job, ledger }),
     };
@@ -153,7 +164,8 @@ export async function runAgentCandidate(
       costLabel: shortEstimate(paidResolvable),
       primaryAction: candidate.primaryAction,
       summary: runSummary(candidate, "needs_approval", null, ledger.items),
-      tasks: buildTasks(candidate, ledger.items, paidResolvable, "needs_approval", null),
+      tasks: buildTasks(candidate, ledger.items, paidResolvable, "needs_approval", null, billed([])),
+      creditsUsed: spent(),
       createdAt: input.now,
       seenAt: null,
     };
@@ -166,7 +178,7 @@ export async function runAgentCandidate(
   const adapted = adaptEvidence(ledger, candidate.job);
   if (adapted.notFound) {
     const frame = buildFrame(adapted, candidate.job, candidate.agentId);
-    const markdown = `I couldn't find enough demo data for **${adapted.entityLabel ?? "this account"}** to finish this card.`;
+    const markdown = `I couldn't find enough in ZoomInfo on **${adapted.entityLabel ?? "this account"}** to finish this card.`;
     const message: AssistantMessage = {
       ...frame,
       markdown,
@@ -186,10 +198,11 @@ export async function runAgentCandidate(
       status: "ready",
       message,
       approval: null,
-      costLabel: autopilotOk ? `Autopilot · ${shortEstimate(paidResolvable)}` : "Free",
+      costLabel: spent() ? `Autopilot · ${spent()} data credit${spent() === 1 ? "" : "s"}` : "Free",
       primaryAction: candidate.primaryAction,
       summary: runSummary(candidate, "not_found", null, ledger.items),
-      tasks: buildTasks(candidate, ledger.items, [], "not_found", null, autopilotOk ? paidResolvable : []),
+      tasks: buildTasks(candidate, ledger.items, [], "not_found", null, billed(autopilotOk ? paidResolvable : [])),
+      creditsUsed: spent(),
       createdAt: input.now,
       seenAt: null,
     };
@@ -220,10 +233,11 @@ export async function runAgentCandidate(
     status: "ready",
     message,
     approval: null,
-    costLabel: paidResolvable.length && autopilotOk ? `Autopilot · ${shortEstimate(paidResolvable)}` : "Free",
+    costLabel: spent() ? `Autopilot · ${spent()} data credit${spent() === 1 ? "" : "s"}` : "Free",
     primaryAction: candidate.primaryAction,
     summary: runSummary(candidate, "ready", frame.data, ledger.items),
-    tasks: buildTasks(candidate, ledger.items, [], "ready", frame.data, autopilotOk ? paidResolvable : []),
+    tasks: buildTasks(candidate, ledger.items, [], "ready", frame.data, billed(autopilotOk ? paidResolvable : [])),
+    creditsUsed: spent(),
     createdAt: input.now,
     seenAt: null,
   };

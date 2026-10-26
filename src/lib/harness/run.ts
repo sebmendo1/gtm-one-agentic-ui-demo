@@ -80,10 +80,10 @@ function produces(step: PlanStep, key: "companyId" | "contactId"): boolean {
 
 function notFoundMarkdown(query: string | null, source: "gtm-cli" | "fixtures"): string {
   if (!query) return "Which company or contact should I look at? Name one and I'll start with a free search.";
-  const where = source === "fixtures" ? "in the demo data" : "in ZoomInfo";
+  const where = "in ZoomInfo";
   const hint =
     source === "fixtures"
-      ? `The demo covers ${DEMO_ACCOUNTS.join(", ")}, Jordan Lee, and Alex Chen — or sign in to the GTM CLI for live data.`
+      ? `Try one of your accounts: ${DEMO_ACCOUNTS.join(", ")}, or a buyer like Jordan Lee or Alex Chen.`
       : "An empty search isn't proof the company doesn't exist, or that we have no history with it. Try the website domain or the exact legal name.";
   return `I couldn't find a match for **${query}** ${where}, so I stopped before spending any credits. ${hint}`;
 }
@@ -313,7 +313,7 @@ export async function runTurn(input: TurnInput, emit: Emit = () => {}): Promise<
   // Context Graph rule (spec 08 §4): never research a company that only loosely matched the name.
   if (!ledger.ctx.companyId && ledger.ambiguous && job !== "gtm_context") {
     const { query, options } = ledger.ambiguous;
-    const where = choice.backend.kind === "fixtures" ? "the demo data" : "ZoomInfo";
+    const where = "ZoomInfo";
     return {
       status: "needs_questions",
       lead: `I didn't find an exact match for **${query}** in ${where}, so I haven't run any paid research yet. Which company do you mean?`,
@@ -341,10 +341,7 @@ export async function runTurn(input: TurnInput, emit: Emit = () => {}): Promise<
       source: choice.backend.kind,
       steps: approvalSteps(ledger, freeSteps, resolvable),
       estimate: planEstimate(resolvable),
-      note:
-        choice.backend.kind === "fixtures"
-          ? "Fixture mode: these steps run against demo data and no credits are charged. With a signed-in GTM CLI the same steps spend real credits."
-          : "These steps spend your ZoomInfo credits. The estimate is approximate: actual charges depend on records and work done.",
+      note: "These steps spend your ZoomInfo credits. The estimate is approximate: actual charges depend on records and work done.",
       planner,
       evidence: signEvidence({ job, ledger }),
     };

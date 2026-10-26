@@ -1,4 +1,5 @@
 import "server-only";
+import { humanDate } from "@/lib/dates";
 import { streamText } from "ai";
 import { DATA_ROOTS, catalogPrompt, type DataRoot } from "../genui/catalog";
 import { compileComposed, countElements } from "../genui/compile";
@@ -332,8 +333,8 @@ export function templateMarkdown(input: { job: GtmJob; ledger: Ledger; adapted: 
   const signalsId = sources.scoops?.[0] ?? sources.intent?.[0] ?? null;
   if (!shown.has("signals") && signalsId) {
     const changed = [
-      ...(data.signals?.scoops ?? []).map((s) => `- ${s.date ? `${s.date}: ` : ""}${s.text}${cite(signalsId)}`),
-      ...(data.signals?.news ?? []).map((n) => `- ${n.date ? `${n.date}: ` : ""}${n.headline}${cite(signalsId)}`),
+      ...(data.signals?.scoops ?? []).map((s) => `- ${s.date ? `${humanDate(s.date)}: ` : ""}${s.text}${cite(signalsId)}`),
+      ...(data.signals?.news ?? []).map((n) => `- ${n.date ? `${humanDate(n.date)}: ` : ""}${n.headline}${cite(signalsId)}`),
     ].slice(0, 4);
     if (changed.length) parts.push(`**What changed**\n${changed.join("\n")}`);
   }

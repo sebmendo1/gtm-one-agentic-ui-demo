@@ -1,4 +1,5 @@
 import "server-only";
+import { humanDate } from "@/lib/dates";
 import { attrs, evidenceFor, recordId, type Ledger } from "../harness/evidence";
 import type {
   CommitteeMember,
@@ -202,7 +203,7 @@ export function adaptEvidence(ledger: Ledger, job: GtmJob): Adapted {
         tldr: researchAnswer ?? "",
         engagement:
           str(researchData.engagementSummary) ||
-          (touches.length ? touches.map((t) => `${str(t.date)}: ${str(t.type)} — ${str(t.subject)}`).join("; ") : ""),
+          (touches.length ? touches.map((t) => `${humanDate(str(t.date))}: ${str(t.type)} — ${str(t.subject)}`).join("; ") : ""),
       };
       bundle.contact = contact;
       cite("profile", enriched?.id ?? contactsEv[0]?.id);
@@ -252,14 +253,14 @@ export function adaptEvidence(ledger: Ledger, job: GtmJob): Adapted {
       ...bundle.signals.scoops.map((s) => ({ date: s.date, text: s.text })),
       ...bundle.signals.news.map((n) => ({ date: n.date, text: n.headline })),
     ].sort((a, b) => b.date.localeCompare(a.date));
-    const hooks = triggers.map((t) => `${t.date}: ${t.text}`);
+    const hooks = triggers.map((t) => `${humanDate(t.date)}: ${t.text}`);
     const ours = [...bundle.signals.topics].sort((a, b) => Number(b.mapsToUs) - Number(a.mapsToUs) || (b.score ?? 0) - (a.score ?? 0))[0];
     const latest = triggers[0];
     const thesis =
       ours && latest
-        ? `${ours.strength} intent on ${ours.topic}, plus a fresh trigger on ${latest.date}: ${latest.text}.`
+        ? `${ours.strength} intent on ${ours.topic}, plus a fresh trigger on ${humanDate(latest.date)}: ${latest.text}.`
         : latest
-          ? `Fresh trigger on ${latest.date}: ${latest.text}.`
+          ? `Fresh trigger on ${humanDate(latest.date)}: ${latest.text}.`
           : bundle.company.tldr;
     bundle.whyNow = {
       thesis,
@@ -335,7 +336,7 @@ export function computeScores(bundle: FixtureBundle, now: number): ScoresRecord 
   const ageDays = scoop ? (now - Date.parse(scoop.date)) / 86_400_000 : Infinity;
   const recent = ageDays <= 120;
   fit += recent ? 15 : 0;
-  breakdown.push({ label: "Scoop in last 120 days", value: scoop ? `${scoop.date}: ${scoop.text}` : "No scoop evidence returned" });
+  breakdown.push({ label: "Scoop in last 120 days", value: scoop ? `${humanDate(scoop.date)}: ${scoop.text}` : "No scoop evidence returned" });
 
   const scores = bundle.signals?.topics.map((t) => t.score ?? 0) ?? [];
   const inMarket = scores.length ? Math.max(...scores) : 0;

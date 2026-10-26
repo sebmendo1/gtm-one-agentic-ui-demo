@@ -8,7 +8,7 @@ const MS_DAY = 86_400_000;
 const ACCOUNT_HINTS: Record<string, string[]> = {
   snowflake: ["snowflake", "snow"],
   stripe: ["stripe"],
-  salesforce: ["salesforce", "sfdc"],
+  datadog: ["datadog", "ddog"],
 };
 
 function accountKeyFor(name: string): string {

@@ -36,7 +36,7 @@ Parser (`src/lib/message.ts`): tags not in the catalog, not placed by Jev, or re
 | `why_now` | Timing thesis + hooks | — | "Use hook" |
 | `gtm_context` | Offerings, personas, ICP, competitors | — | — |
 
-Local interactions never call the model. **Actions** send a new user turn (the article's `issueNewTurn`) or copy text. Every widget shows its sources and a "Demo data" chip in fixture mode.
+Local interactions never call the model. **Actions** send a new user turn (the article's `issueNewTurn`) or copy text. Every widget shows its sources; the "Demo data" chip shows only with `?debug=1`.
 
 ## Composed views
 

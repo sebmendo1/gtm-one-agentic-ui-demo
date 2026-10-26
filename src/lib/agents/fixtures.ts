@@ -83,12 +83,12 @@ export const PERSONA_DEALS: PersonaDeal[] = [
     nextStep: "Send Alex Chen the deck and one-pager",
   },
   {
-    accountKey: "salesforce",
-    name: "Salesforce sales engagement",
+    accountKey: "datadog",
+    name: "Datadog sales engagement",
     stage: "Pipeline",
     amount: 120_000,
     closeMs: Date.parse("2026-12-19T17:00:00-08:00"),
-    nextStep: "Partner sync Wed 11:00 AM",
+    nextStep: "Discovery call Wed 11:00 AM",
   },
 ];
 
@@ -136,16 +136,16 @@ export const CALENDAR_EVENTS: CalendarEvent[] = [
     attendees: [{ email: PERSONA_EMAIL, name: PERSONA_PROFILE.name, internal: true }],
   },
   {
-    id: "cal-salesforce-partner",
-    title: "Salesforce — partner sync",
+    id: "cal-datadog-discovery",
+    title: "Datadog — discovery call",
     startMs: Date.parse("2026-10-28T11:00:00-07:00"),
     endMs: Date.parse("2026-10-28T11:45:00-07:00"),
-    accountKey: "salesforce",
-    domain: "salesforce.com",
+    accountKey: "datadog",
+    domain: "datadoghq.com",
     external: true,
     attendees: [
       { email: PERSONA_EMAIL, name: PERSONA_PROFILE.name, internal: true },
-      { email: "jamie.fox@salesforce.com", name: "Jamie Fox" },
+      { email: "jamie.fox@datadoghq.com", name: "Jamie Fox" },
     ],
   },
 ];
@@ -161,6 +161,12 @@ export const INBOX_THREADS: InboxThread[] = [
     snippet: "Can you send the deck and a one-pager before we pick a pilot slot?",
     unanswered: true,
   },
+];
+
+/** What Alex asked for; the drafted reply carries both. */
+export const REPLY_ATTACHMENTS = [
+  { name: "Northwind demo deck.pdf", size: "4.2 MB" },
+  { name: "Pilot one-pager.pdf", size: "310 KB" },
 ];
 
 /** Fires on morning sweep when `now >= DEMO_MORNING_MS`. */
@@ -182,7 +188,7 @@ export const OVERNIGHT_SIGNALS: OvernightSignal[] = [
 ];
 
 export function accountLabel(key: string): string {
-  const map: Record<string, string> = { snowflake: "Snowflake", stripe: "Stripe", salesforce: "Salesforce" };
+  const map: Record<string, string> = { snowflake: "Snowflake", stripe: "Stripe", datadog: "Datadog" };
   return map[key] ?? key;
 }
 

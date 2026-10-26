@@ -62,6 +62,22 @@ async function main() {
     if (!run.tasks?.some((t) => t.status === "waiting")) errors.push("account_map approval run should show a waiting task");
   }
 
+  // Autopilot on: credit-spending lookups run inside the daily budget and say what they spent.
+  const autopilot: SweepInput = { ...evening, budget: { dataCreditsPerDay: 10, allowDataAutopilot: true } };
+  let spent = 0;
+  for (const c of eveningTriggers) {
+    const run = await runAgentCandidate(c, { ...autopilot, autopilotLeft: 10 - spent }, `ap-${c.runKey}`);
+    spent += run.creditsUsed ?? 0;
+    if (run.status === "needs_approval") errors.push(`${c.agentId} should finish on autopilot within budget`);
+  }
+  if (spent < 1 || spent > 10) errors.push(`evening autopilot should spend between 1 and 10 credits, spent ${spent}`);
+  const broke = await runAgentCandidate(eveningTriggers[0]!, { ...autopilot, autopilotLeft: 0 }, "broke");
+  if (broke.status !== "needs_approval" || broke.creditsUsed) errors.push("an exhausted autopilot budget should ask before spending");
+
+  const accounts = [...eveningTriggers, ...morningTriggers].map((t) => t.entity.company);
+  if (accounts.includes("Salesforce")) errors.push("Salesforce is the CRM integration, never an account");
+  if (!accounts.includes("Datadog")) errors.push("expected the Datadog account on the calendar");
+
   if (errors.length) {
     console.error("always-on checks failed:\n", errors.map((e) => `- ${e}`).join("\n"));
     process.exit(1);

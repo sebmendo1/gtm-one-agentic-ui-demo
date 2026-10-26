@@ -2,6 +2,8 @@
 
 import { Button, Fab, Snackbar, Zoom } from "@mui/material";
 import { ArrowDownIcon } from "@heroicons/react/24/outline";
+import { MoonIcon } from "@heroicons/react/16/solid";
+import { DEMO_MORNING_MS } from "@/lib/agents/fixtures";
 import { useEffect, useMemo, useState } from "react";
 import { parseHubIntent } from "@/lib/agents/intents";
 import { dayLabel } from "@/lib/agents/time";
@@ -104,6 +106,7 @@ export function GoToAgentView({
   onHubAnswer,
   onHubDecide,
   onNudge,
+  onSkipToMorning,
 }: {
   workspace: Workspace;
   hubConversation: Conversation | null;
@@ -123,6 +126,7 @@ export function GoToAgentView({
   onHubAnswer: (turn: Turn, questionId: string, optionId: string) => void;
   onHubDecide: (turn: Turn, decision: ApprovalDecision["decision"]) => void;
   onNudge: (nudge: AgentNudge, choice: "accepted" | "dismissed") => void;
+  onSkipToMorning?: () => void;
 }) {
   const { scrollRef, contentRef, atBottom, unread, stick, detach } = useStickToBottom();
   const [toast, setToast] = useState<Toast | null>(null);
@@ -180,6 +184,16 @@ export function GoToAgentView({
     },
     onPrimary: async () => {
       markSeen(run);
+      if (run.primaryAction.kind === "send_reply") {
+        onPrimary(run);
+        setToast({ message: `Sent to ${run.entity.contact ?? run.entity.company}` });
+        return;
+      }
+      if (run.primaryAction.kind === "add_to_brief") {
+        onPrimary(run);
+        setToast({ message: `Added to your ${run.entity.company} talk track` });
+        return;
+      }
       const ok = await runPrimaryAction(run);
       if (ok) {
         onPrimary(run);
@@ -188,6 +202,15 @@ export function GoToAgentView({
         setToast({ message: "Couldn't reach the clipboard. Open the thread to copy it." });
       }
     },
+    onCopy:
+      run.primaryAction.kind === "send_reply" || run.primaryAction.kind === "add_to_brief"
+        ? async () => {
+            markSeen(run);
+            const ok = await runPrimaryAction(run);
+            const what = run.primaryAction.kind === "send_reply" ? "Draft" : "Outreach note";
+            setToast({ message: ok ? `${what} copied to your clipboard` : "Couldn't reach the clipboard. Open the thread to copy it." });
+          }
+        : undefined,
     onViewWork: () => {
       markSeen(run);
       setWorkRunId(run.id);
@@ -254,10 +277,26 @@ export function GoToAgentView({
                 highlightId={focus?.runId ?? null}
                 onToggle={toggle}
                 handlersFor={handlersFor}
+                autopilotLimit={workspace.budget.allowDataAutopilot ? workspace.budget.dataCreditsPerDay : null}
               />
             );
           })}
           {sweepError && !sweeping && <SweepError message={sweepError} onRetry={onRetrySweep} />}
+          {idle && onSkipToMorning && workspace.lastSweepAt && workspace.demoNow < DEMO_MORNING_MS && (
+            <div className="gtm-enter flex items-center gap-3 text-meta text-gtm-muted" style={{ "--gtm-delay": "600ms" } as React.CSSProperties}>
+              <span className="h-px flex-1 bg-gtm-border" aria-hidden />
+              <MoonIcon className="size-3.5 shrink-0" aria-hidden />
+              <span className="shrink-0">I&apos;ll check again at 7:00 AM</span>
+              <button
+                type="button"
+                onClick={onSkipToMorning}
+                className="shrink-0 rounded-full border border-gtm-border bg-gtm-bg px-2.5 py-1 font-medium text-gtm-secondary transition-colors hover:bg-gtm-subtle hover:text-gtm-text"
+              >
+                See tomorrow morning
+              </button>
+              <span className="h-px flex-1 bg-gtm-border" aria-hidden />
+            </div>
+          )}
         </div>
       </div>
 

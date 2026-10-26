@@ -2,7 +2,7 @@
 
 import { Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, Tooltip } from "@mui/material";
 import { useState } from "react";
-import { ArrowPathIcon, LockClosedIcon, PencilSquareIcon } from "@heroicons/react/24/outline";
+import { ArrowPathIcon, ClockIcon, LockClosedIcon, PencilSquareIcon } from "@heroicons/react/24/outline";
 import { XMarkIcon } from "@heroicons/react/16/solid";
 import { HUB_CONVERSATION_ID } from "@/lib/agents/types";
 import { isSubChat, type Conversation } from "./useChat";
@@ -114,7 +114,7 @@ export function Sidebar({
                 {hubUnseen > 0 && (
                   <span
                     className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-gtm-cta px-1.5 text-caption font-semibold text-white tabular-nums"
-                    aria-label={`${hubUnseen} new`}
+                    aria-label={`${hubUnseen} need you`}
                   >
                     {hubUnseen}
                   </span>
@@ -159,7 +159,13 @@ export function Sidebar({
             {workspace && (
               <div className="px-2.5">
                 <CreditMeter workspace={workspace} compact />
-                {workspace.connections.salesforce === "locked" && (
+                {workspace.connections.salesforce === "locked" && workspace.milestones.invited && (
+                  <p className="gtm-enter mt-2 flex items-center gap-1.5 text-xs text-gtm-secondary">
+                    <ClockIcon className="size-3.5 text-gtm-warning" />
+                    Salesforce · Invite sent, waiting on admin
+                  </p>
+                )}
+                {workspace.connections.salesforce === "locked" && !workspace.milestones.invited && (
                   <button
                     type="button"
                     onClick={onInviteAdmin}
@@ -271,7 +277,7 @@ function SidebarRail({
         <RailButton label="New thread" onClick={onNewSubChat}>
           <PencilSquareIcon className="size-5" />
         </RailButton>
-        <RailButton label={hubUnseen ? `Go-to-agent · ${hubUnseen} new` : "Go-to-agent"} current={hubActive} onClick={onOpenHub}>
+        <RailButton label={hubUnseen ? `Go-to-agent · ${hubUnseen} need you` : "Go-to-agent"} current={hubActive} onClick={onOpenHub}>
           <AgentAvatar size={24} />
           {hubUnseen > 0 && (
             <span className="gtm-pop absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-gtm-cta px-1 text-[10px] font-semibold text-white tabular-nums ring-2 ring-gtm-bg-secondary">

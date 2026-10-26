@@ -20,6 +20,7 @@ import {
 import { ArrowUpRightIcon, ChevronDownIcon, PaperAirplaneIcon, SparklesIcon } from "@heroicons/react/20/solid";
 import { BoltIcon, NewspaperIcon } from "@heroicons/react/16/solid";
 import { useMemo, useState } from "react";
+import { humanDate } from "@/lib/dates";
 import { useChatActions, useFrame } from "../context";
 import { WidgetCard, initials } from "./WidgetCard";
 
@@ -163,7 +164,7 @@ export function SignalsWidget() {
             </span>
             <div className="flex items-center gap-2 text-xs text-gtm-muted">
               {item.kind === "Scoop" ? <BoltIcon className="size-3.5" /> : <NewspaperIcon className="size-3.5" />}
-              <span className="font-gtm-mono">{item.date || "undated"}</span>
+              <span className="tabular-nums">{item.date ? humanDate(item.date) : "Undated"}</span>
               <span>· {item.kind}</span>
             </div>
             <div className="mt-0.5 flex items-start justify-between gap-2">
@@ -175,7 +176,7 @@ export function SignalsWidget() {
                     aria-label="Draft outreach from this signal"
                     disabled={busy}
                     className="-mt-1 shrink-0 pointer-fine:opacity-60 pointer-fine:group-hover:opacity-100"
-                    onClick={() => send(`Draft a short outreach email to ${entityLabel ?? "this account"} referencing: ${item.text} (${item.date})`)}
+                    onClick={() => send(`Draft a short outreach email to ${entityLabel ?? "this account"} referencing: ${item.text} (${humanDate(item.date)})`)}
                   >
                     <PaperAirplaneIcon className="size-4" />
                   </IconButton>

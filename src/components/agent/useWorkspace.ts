@@ -2,10 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { mergeRuns } from "@/lib/agents/merge-runs";
+import { spacedKey } from "@/lib/storage-space";
+import { dayKey } from "@/lib/agents/time";
+import { autopilotUsedToday } from "@/lib/agents/work";
 import { DEFAULT_WATCHLIST, DEMO_MORNING_MS, DEMO_START_MS, PERSONA_PROFILE } from "@/lib/agents/fixtures";
 import type { AgentNudge, AgentRun, AgentStreamEvent, NudgeKey, Workspace, WorkspaceMilestone } from "@/lib/agents/types";
 
-const STORAGE_KEY = "gtm-workspace-v1";
+const STORAGE_KEY = "gtm-workspace-v2";
 const REVEAL_MS = 420;
 const TASK_MS = 300;
 
@@ -38,7 +41,7 @@ export function defaultWorkspace(): Workspace {
 
 function readWorkspace(): Workspace {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(spacedKey(STORAGE_KEY));
     if (!raw) return defaultWorkspace();
     const parsed = JSON.parse(raw) as Workspace;
     if (parsed.version !== 1) return defaultWorkspace();
@@ -94,7 +97,7 @@ export function useWorkspace() {
   useEffect(() => {
     if (!ready) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(workspace));
+      localStorage.setItem(spacedKey(STORAGE_KEY), JSON.stringify(workspace));
     } catch {
       // quota
     }
@@ -155,6 +158,14 @@ export function useWorkspace() {
     [patch],
   );
 
+  /** Credits the AE approved by hand (thread research); these don't count against autopilot. */
+  const spendCredits = useCallback(
+    (amount: number) => {
+      if (amount > 0) patch((w) => ({ ...w, credits: { ...w.credits, data: Math.max(0, w.credits.data - amount) } }));
+    },
+    [patch],
+  );
+
   const markNudgesSeen = useCallback(() => {
     if (!wsRef.current.nudges.some((n) => !n.seenAt)) return;
     patch((w) => ({ ...w, nudges: w.nudges.map((n) => (n.seenAt ? n : { ...n, seenAt: Date.now() })) }));
@@ -178,6 +189,7 @@ export function useWorkspace() {
           budget: w.budget,
           seenRunKeys: w.runs.map((r) => r.runKey),
           mappedAccounts: w.mappedAccounts,
+          autopilotLeft: Math.max(0, w.budget.dataCreditsPerDay - autopilotUsedToday(w)),
         }),
       });
       if (!res.ok) {
@@ -205,7 +217,13 @@ export function useWorkspace() {
           await sleep(REVEAL_MS);
         }
         const run = { ...item.run, receivedAt: Date.now() };
-        patch((prev) => ({ ...prev, runs: mergeRuns(prev.runs, [run]) }));
+        const used = run.creditsUsed ?? 0;
+        patch((prev) => ({
+          ...prev,
+          runs: mergeRuns(prev.runs, [run]),
+          credits: { ...prev.credits, data: Math.max(0, prev.credits.data - used) },
+          autopilot: { day: dayKey(prev.demoNow), used: autopilotUsedToday(prev) + used },
+        }));
         setSweepLive(null);
       }
       patch((prev) => ({
@@ -242,6 +260,7 @@ export function useWorkspace() {
     updateRun,
     raiseNudge,
     resolveNudge,
+    spendCredits,
     markNudgesSeen,
     sweep,
   };

@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, Checkbox, CircularProgress, Slider, Switch } from "@mui/material";
-import { BoltIcon, BriefcaseIcon, CalendarIcon, EnvelopeIcon, EyeIcon, LockClosedIcon } from "@heroicons/react/24/outline";
+import { BoltIcon, BriefcaseIcon, CalendarIcon, EnvelopeIcon, EyeIcon, LockClosedIcon, PencilIcon } from "@heroicons/react/24/outline";
 import { CheckCircleIcon, CheckIcon } from "@heroicons/react/20/solid";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
@@ -14,6 +14,7 @@ import {
   PERSONA_PROFILE,
   accountLabel,
   type DealStage,
+  type PersonaDeal,
 } from "@/lib/agents/fixtures";
 import { formatDayTime } from "@/lib/agents/time";
 import type { WorkspaceBudget } from "@/lib/agents/types";
@@ -23,20 +24,23 @@ import { AgentAvatar } from "./AgentAvatar";
 const FIRST_NAME = PERSONA_PROFILE.name.split(" ")[0];
 
 const STEPS = [
-  { title: `Welcome, ${FIRST_NAME}.`, subtitle: "Here's the quarter you're working." },
-  { title: "Connect your day.", subtitle: "Calendar and email, read-only." },
+  { title: `Welcome, ${FIRST_NAME}.`, subtitle: "Confirm the deals you're working this quarter." },
+  { title: "Connect your day.", subtitle: "I read your calendar and inbox. Nothing sends without your OK." },
   { title: "Choose accounts to watch.", subtitle: "I'll post buying signals for these overnight." },
   { title: "Set your autopilot.", subtitle: "What I can spend without asking." },
 ];
 
 const MEETINGS = CALENDAR_EVENTS.filter((e) => e.external).sort((a, b) => a.startMs - b.startMs);
 const ACCOUNTS = [...new Set([...MEETINGS.map((e) => e.accountKey).filter((k): k is string => !!k), ...DEFAULT_WATCHLIST])];
-const OPEN_PIPELINE = PERSONA_DEALS.reduce((sum, d) => sum + d.amount, 0);
 const WAITING = INBOX_THREADS.filter((t) => t.unanswered);
 const WAITING_DAYS = WAITING[0] ? Math.floor((DEMO_START_MS - WAITING[0].receivedMs) / 86_400_000) : 0;
 const MAX_CREDITS = 25;
 
 const STAGE_ORDER: DealStage[] = ["Commit", "Best case", "Pipeline"];
+
+function pipelineOf(deals: PersonaDeal[]): number {
+  return deals.reduce((sum, d) => sum + d.amount, 0);
+}
 const STAGE_BAR: Record<DealStage, string> = {
   Commit: "bg-gtm-success",
   "Best case": "bg-gtm-warning",
@@ -89,13 +93,14 @@ function useTimers() {
 export function Onboarding({
   onComplete,
 }: {
-  onComplete: (input: { watchlist: string[]; budget: WorkspaceBudget }) => void;
+  onComplete: (input: { watchlist: string[]; budget: WorkspaceBudget; deals: PersonaDeal[] }) => void;
 }) {
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState<"next" | "back">("next");
   const [phase, setPhase] = useState<ConnectPhase>("idle");
   const [launching, setLaunching] = useState(false);
   const [watchlist, setWatchlist] = useState<string[]>(DEFAULT_WATCHLIST);
+  const [deals, setDeals] = useState<PersonaDeal[]>(PERSONA_DEALS);
   const [budget, setBudget] = useState<WorkspaceBudget>({ dataCreditsPerDay: 10, allowDataAutopilot: true });
   const later = useTimers();
 
@@ -118,7 +123,7 @@ export function Onboarding({
   const launch = () => {
     setDir("next");
     setLaunching(true);
-    later(LAUNCH_MS, () => onComplete({ watchlist, budget }));
+    later(LAUNCH_MS, () => onComplete({ watchlist, budget, deals }));
   };
 
   const toggleAccount = (key: string) => {
@@ -157,10 +162,10 @@ export function Onboarding({
 
             <div className={`mt-7 ${slide}`} style={delay(140)}>
               {launching ? (
-                <LaunchList watchlist={watchlist} budget={budget} />
+                <LaunchList watchlist={watchlist} budget={budget} deals={deals} />
               ) : (
                 <>
-                  {step === 0 && <DealsStep />}
+                  {step === 0 && <DealsStep deals={deals} onChange={setDeals} />}
                   {step === 1 && <ConnectStep phase={phase} onConnect={connect} />}
                   {step === 2 && <AccountsStep watchlist={watchlist} onToggle={toggleAccount} />}
                   {step === 3 && <AutopilotStep budget={budget} onChange={setBudget} />}
@@ -192,7 +197,7 @@ export function Onboarding({
       </section>
 
       <aside className="hidden w-[44%] max-w-xl shrink-0 flex-col justify-center border-l border-gtm-border bg-gtm-bg-secondary px-10 lg:flex">
-        <Preview step={step} phase={phase} launching={launching} watchlist={watchlist} budget={budget} />
+        <Preview step={step} phase={phase} launching={launching} watchlist={watchlist} budget={budget} deals={deals} />
       </aside>
     </div>
   );
@@ -223,27 +228,78 @@ function Progress({ step, total, done }: { step: number; total: number; done: bo
   );
 }
 
-function StageBar({ height = "h-1.5", start = 0 }: { height?: string; start?: number }) {
+function StageBar({ deals, height = "h-1.5", start = 0 }: { deals: PersonaDeal[]; height?: string; start?: number }) {
   return (
     <div className={`flex w-full gap-0.5 overflow-hidden rounded-full ${height}`} aria-hidden>
       {STAGE_ORDER.map((stage, i) => {
-        const amount = PERSONA_DEALS.filter((d) => d.stage === stage).reduce((s, d) => s + d.amount, 0);
+        const amount = deals.filter((d) => d.stage === stage).reduce((s, d) => s + d.amount, 0);
         return <span key={stage} className={`gtm-grow-x ${STAGE_BAR[stage]}`} style={{ ...delay(start + i * 120), flexGrow: amount }} />;
       })}
     </div>
   );
 }
 
-function DealsStep() {
-  const pipeline = useCountUp(OPEN_PIPELINE / 1000);
-  const committed = PERSONA_DEALS.filter((d) => d.stage === "Commit").length;
+function DealEditor({ deal, onSave }: { deal: PersonaDeal; onSave: (deal: PersonaDeal) => void }) {
+  const [amount, setAmount] = useState(String(Math.round(deal.amount / 1000)));
+  const [stage, setStage] = useState<DealStage>(deal.stage);
+  const save = () => onSave({ ...deal, stage, amount: Math.max(1, Number(amount) || 0) * 1000 });
+  return (
+    <form
+      className="gtm-enter flex flex-wrap items-center gap-2 px-4 py-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        save();
+      }}
+    >
+      <span className="w-full text-sm font-medium text-gtm-text">{deal.name}</span>
+      <label className="flex h-8 items-center gap-1 rounded-gtm border border-gtm-border bg-gtm-bg px-2 text-sm focus-within:border-gtm-text">
+        <span className="text-gtm-muted">$</span>
+        <input
+          autoFocus
+          inputMode="numeric"
+          aria-label={`${deal.name} amount in thousands`}
+          value={amount}
+          onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, "").slice(0, 4))}
+          className="w-12 bg-transparent text-gtm-text tabular-nums outline-none"
+        />
+        <span className="text-gtm-muted">k</span>
+      </label>
+      <span className="flex gap-1" role="radiogroup" aria-label={`${deal.name} stage`}>
+        {STAGE_ORDER.map((s) => (
+          <button
+            key={s}
+            type="button"
+            role="radio"
+            aria-checked={stage === s}
+            onClick={() => setStage(s)}
+            className={`flex h-8 items-center gap-1.5 rounded-full border px-2.5 text-meta font-medium transition-colors ${
+              stage === s ? "border-gtm-text bg-gtm-text text-gtm-bg" : "border-gtm-border text-gtm-secondary hover:bg-gtm-hover"
+            }`}
+          >
+            <span className={`size-1.5 rounded-full ${STAGE_BAR[s]}`} aria-hidden />
+            {s}
+          </button>
+        ))}
+      </span>
+      <Button type="submit" size="small" variant="contained" color="primary" className="ml-auto">
+        Save
+      </Button>
+    </form>
+  );
+}
+
+function DealsStep({ deals, onChange }: { deals: PersonaDeal[]; onChange: (deals: PersonaDeal[]) => void }) {
+  const [editing, setEditing] = useState<string | null>(null);
+  const total = pipelineOf(deals);
+  const pipeline = useCountUp(total / 1000);
+  const committed = deals.filter((d) => d.stage === "Commit").length;
   return (
     <div>
       <div className="mb-4 flex items-end justify-between gap-4">
         <div>
           <p className="text-3xl font-semibold tracking-tight text-gtm-text tabular-nums">
             <span aria-hidden>{`$${pipeline}k`}</span>
-            <span className="sr-only">{formatAmount(OPEN_PIPELINE)}</span>
+            <span className="sr-only">{formatAmount(total)}</span>
           </p>
           <p className="text-meta text-gtm-muted">open pipeline</p>
         </div>
@@ -255,20 +311,40 @@ function DealsStep() {
           <p className="text-meta text-gtm-muted">in commit for {PERSONA_GOAL.quarterLabel}</p>
         </div>
       </div>
-      <StageBar start={250} />
+      <StageBar deals={deals} start={250} />
       <ul className="mt-4 divide-y divide-gtm-border rounded-gtm-xl border border-gtm-border bg-gtm-surface" aria-label="Deals you're working">
-        {PERSONA_DEALS.map((deal, i) => (
-          <li key={deal.accountKey} className="gtm-slide-next flex items-center gap-3 px-4 py-3 text-sm" style={delay(220 + i * 80)}>
-            <span className={`size-2 shrink-0 rounded-full ${STAGE_BAR[deal.stage]}`} aria-hidden />
-            <span className="min-w-0 flex-1 truncate font-medium text-gtm-text">{deal.name}</span>
-            <span className="shrink-0 text-meta text-gtm-muted tabular-nums">
-              {formatAmount(deal.amount)} · {deal.stage} · {formatCloseDate(deal.closeMs)}
-            </span>
-          </li>
-        ))}
+        {deals.map((deal, i) =>
+          editing === deal.accountKey ? (
+            <li key={deal.accountKey}>
+              <DealEditor
+                deal={deal}
+                onSave={(next) => {
+                  onChange(deals.map((d) => (d.accountKey === next.accountKey ? next : d)));
+                  setEditing(null);
+                }}
+              />
+            </li>
+          ) : (
+            <li key={deal.accountKey} className="gtm-slide-next group flex items-center gap-3 py-2 pr-2 pl-4 text-sm" style={delay(220 + i * 80)}>
+              <span className={`size-2 shrink-0 rounded-full ${STAGE_BAR[deal.stage]}`} aria-hidden />
+              <span className="min-w-0 flex-1 truncate font-medium text-gtm-text">{deal.name}</span>
+              <span className="shrink-0 text-meta text-gtm-muted tabular-nums">
+                {formatAmount(deal.amount)} · {deal.stage} · {formatCloseDate(deal.closeMs)}
+              </span>
+              <button
+                type="button"
+                aria-label={`Edit ${deal.name}`}
+                onClick={() => setEditing(deal.accountKey)}
+                className="flex size-8 shrink-0 items-center justify-center rounded-gtm text-gtm-muted transition-colors hover:bg-gtm-hover hover:text-gtm-text"
+              >
+                <PencilIcon className="size-4" />
+              </button>
+            </li>
+          ),
+        )}
       </ul>
-      <p className="gtm-enter mt-3 text-meta text-gtm-muted" style={delay(520)}>
-        Salesforce replaces this list once your admin connects it.
+      <p className="gtm-enter mt-3 text-meta text-pretty text-gtm-muted" style={delay(520)}>
+        From your signup answers. Edit anything that&apos;s off; Salesforce replaces this list once your admin connects it.
       </p>
     </div>
   );
@@ -479,9 +555,9 @@ function AutopilotStep({ budget, onChange }: { budget: WorkspaceBudget; onChange
 }
 
 /** The closing beat: each answer checks off in order, then the hub takes over. */
-function LaunchList({ watchlist, budget }: { watchlist: string[]; budget: WorkspaceBudget }) {
+function LaunchList({ watchlist, budget, deals }: { watchlist: string[]; budget: WorkspaceBudget; deals: PersonaDeal[] }) {
   const items = [
-    `${PERSONA_DEALS.length} deals loaded · ${formatAmount(OPEN_PIPELINE)} pipeline`,
+    `${deals.length} deals confirmed · ${formatAmount(pipelineOf(deals))} pipeline`,
     `Google connected · ${MEETINGS.length} meetings, ${WAITING.length} reply waiting`,
     `Watching ${watchlist.map(accountLabel).join(", ")}`,
     budget.allowDataAutopilot ? `Autopilot up to ${budget.dataCreditsPerDay} data credits a day` : "Autopilot off · I'll ask before spending",
@@ -517,14 +593,16 @@ function Preview({
   launching,
   watchlist,
   budget,
+  deals,
 }: {
   step: number;
   phase: ConnectPhase;
   launching: boolean;
   watchlist: string[];
   budget: WorkspaceBudget;
+  deals: PersonaDeal[];
 }) {
-  const pipeline = useCountUp(OPEN_PIPELINE / 1000);
+  const pipeline = useCountUp(pipelineOf(deals) / 1000);
   const meetingsCount = useCountUp(MEETINGS.length, phase === "inbox" || phase === "done", 500);
   const waiting = WAITING[0];
 
@@ -540,16 +618,16 @@ function Preview({
       placeholder: "",
       summary: (
         <>
-          {PERSONA_DEALS.length} open ·{" "}
+          {deals.length} open ·{" "}
           <span className="tabular-nums" aria-hidden>
             {`$${pipeline}k`}
           </span>
-          <span className="sr-only">{formatAmount(OPEN_PIPELINE)}</span> pipeline
+          <span className="sr-only">{formatAmount(pipelineOf(deals))}</span> pipeline
         </>
       ),
       detail: (
         <div className="pt-2">
-          <StageBar height="h-1" start={200} />
+          <StageBar deals={deals} height="h-1" start={200} />
           <p className="mt-1.5 flex gap-3 text-caption text-gtm-muted">
             {STAGE_ORDER.map((stage) => (
               <span key={stage} className="flex items-center gap-1">

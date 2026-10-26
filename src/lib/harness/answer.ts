@@ -46,7 +46,7 @@ export async function answerProse(input: {
         docs.platform,
         "Reference — install and connect (spec 06):",
         docs.setup,
-        "This app: Gemini plans GTM CLI calls and writes cited replies; Jev (TypeSafe) decides whether and which interactive components to show; paid CLI steps need one approval. The GTM CLI is bundled with this app, so never tell the user to install it here; they only sign in with `npm run gtm -- auth login` from the project folder. Without a signed-in CLI it uses demo fixtures (Snowflake, Stripe, Salesforce, Jordan Lee, Alex Chen).",
+        "This app: Gemini plans GTM CLI calls and writes cited replies; Jev (TypeSafe) decides whether and which interactive components to show; paid CLI steps need one approval. The GTM CLI is bundled with this app, so never tell the user to install it here; they only sign in with `npm run gtm -- auth login` from the project folder. Without a signed-in CLI it uses demo fixtures (Snowflake, Stripe, Datadog, Jordan Lee, Alex Chen).",
       ].join("\n"),
       messages: [
         ...input.history.map((h) => ({ role: h.role, content: h.text })),

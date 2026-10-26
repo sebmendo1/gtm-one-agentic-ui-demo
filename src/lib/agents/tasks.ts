@@ -35,6 +35,26 @@ function labelFor(agentId: AgentId, command: string, run: Pick<AgentRun, "entity
   }
 }
 
+function titleFor(agentId: AgentId, command: string, run: Pick<AgentRun, "entity">): string | null {
+  switch (command) {
+    case "contacts_recommended":
+      return `Found who to talk to at ${company(run)} in ZoomInfo`;
+    case "contacts_search":
+      return agentId === "account_map" ? `Found stakeholders at ${company(run)} in ZoomInfo` : `Looked up ${run.entity.contact ?? "the contact"} in ZoomInfo`;
+    case "browse_engagements":
+      return agentId === "account_map" ? "Checked who we've already met" : "Checked our past meetings and emails";
+    case "scoops_search":
+      return `Scanned recent news on ${company(run)} in ZoomInfo`;
+    case "company_signals":
+      return `Checked ${company(run)} buying signals in ZoomInfo`;
+    case "companies_enrich":
+    case "companies_search":
+      return `Looked up ${company(run)} in ZoomInfo`;
+    default:
+      return null;
+  }
+}
+
 function plural(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`;
 }
@@ -81,21 +101,28 @@ function readTask(run: Pick<AgentRun, "agentId" | "trigger" | "entity">): AgentT
   const base = { id: "read", status: "done" as const, cost: "free" as const, evidenceIds: [], commands: [] };
   if (meta?.threadId) {
     const thread = INBOX_THREADS.find((t) => t.id === meta.threadId);
-    if (thread) return { ...base, label: "Read the thread", source: "gmail", detail: `“${thread.snippet}”` };
+    if (thread) return { ...base, label: "Read the thread", title: `Read ${thread.fromName}'s thread in Gmail`, source: "gmail", detail: `“${thread.snippet}”` };
   }
   if (meta?.eventId) {
     const event = CALENDAR_EVENTS.find((e) => e.id === meta.eventId);
     if (event) {
       const guests = event.attendees.filter((a) => !a.internal).length;
-      return { ...base, label: "Read the meeting", source: "calendar", detail: `${event.title} · ${plural(guests, "guest", "guests")} from ${company(run)}` };
+      return { ...base, label: "Read the meeting", title: "Read the invite in Google Calendar", source: "calendar", detail: `${event.title} · ${plural(guests, "guest", "guests")} from ${company(run)}` };
     }
   }
   if (meta?.signalId) {
     const signal = OVERNIGHT_SIGNALS.find((s) => s.id === meta.signalId);
-    if (signal) return { ...base, label: "Read the signal", source: "zoominfo", detail: signal.headline };
+    if (signal) return { ...base, label: "Read the signal", title: "Read the overnight signal in ZoomInfo", source: "zoominfo", detail: signal.headline };
   }
   return null;
 }
+
+const WRITE_TITLE: Record<AgentId, string> = {
+  meeting_prep: "Wrote the brief from what I found",
+  follow_up_nudge: "Drafted the reply from the thread and history",
+  account_map: "Mapped the committee from what I found",
+  deal_watch: "Wrote the why-now note from the signal",
+};
 
 const WRITE_LABEL: Record<AgentId, string> = {
   meeting_prep: "Write the brief",
@@ -145,6 +172,7 @@ export function buildTasks(
     tasks.push({
       id: item.id,
       label: labelFor(run.agentId, item.command, run)!,
+      title: titleFor(run.agentId, item.command, run) ?? undefined,
       detail: detailFor(item.command, item.status, item.count),
       source: "zoominfo",
       status: taskStatus(item.status),
@@ -172,6 +200,7 @@ export function buildTasks(
     tasks.push({
       id: "write",
       label: WRITE_LABEL[run.agentId],
+      title: outcome === "needs_approval" ? undefined : WRITE_TITLE[run.agentId],
       detail: outcome === "needs_approval" ? "Waits for the paid step" : writeDetail(run.agentId, data),
       source: "writer",
       status: outcome === "needs_approval" ? "waiting" : "done",
@@ -188,7 +217,14 @@ export function completeTasks(run: AgentRun, data: BundleData): Pick<AgentRun, "
   return {
     summary: runSummary(run, "ready", data, []),
     tasks: run.tasks?.map((t) =>
-      t.status !== "waiting" ? t : { ...t, status: "done", detail: t.source === "writer" ? writeDetail(run.agentId, data) : "Approved and run" },
+      t.status !== "waiting"
+        ? t
+        : {
+            ...t,
+            status: "done",
+            title: t.source === "writer" ? WRITE_TITLE[run.agentId] : `${t.label} (you approved it)`,
+            detail: t.source === "writer" ? writeDetail(run.agentId, data) : "Approved and run",
+          },
     ),
   };
 }

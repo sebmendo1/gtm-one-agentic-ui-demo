@@ -1,6 +1,7 @@
 import type { AssistantMessage } from "@/lib/message";
 import type { ApprovalRequest, EntityRef } from "@/lib/spec";
 import type { GtmJob } from "@/lib/gtm/jobs";
+import type { PersonaDeal } from "./fixtures";
 
 export const HUB_CONVERSATION_ID = "__go-to-agent__";
 
@@ -27,7 +28,10 @@ export type AgentTaskStatus = "done" | "empty" | "waiting" | "skipped";
 /** One small job a specialist ran: what it did, where it looked, and what came back. */
 export interface AgentTask {
   id: string;
+  /** Present tense, shown while the task runs ("Look up Alex Chen"). */
   label: string;
+  /** What it did and where, once done ("Looked up Alex Chen in ZoomInfo"). */
+  title?: string;
   detail: string;
   source: SourceKind | "writer";
   status: AgentTaskStatus;
@@ -51,7 +55,7 @@ export interface AgentRun {
   /** Server-written sentence explaining what the paid steps would add. */
   approvalLead?: string;
   costLabel: string;
-  primaryAction: { label: string; kind: "copy_talk_track" | "copy_draft" | "copy_note" | "approve" };
+  primaryAction: { label: string; kind: "copy_talk_track" | "send_reply" | "add_to_brief" | "copy_note" | "approve" };
   /** What the specialist did, in one line ("Drafted a reply to Alex Chen"). */
   summary?: string;
   tasks?: AgentTask[];
@@ -61,6 +65,10 @@ export interface AgentRun {
   receivedAt?: number;
   /** The thread this card was opened in, reused on the next Open thread. */
   threadId?: string;
+  /** Demo time the AE approved and sent the drafted reply. */
+  sentAt?: number;
+  /** Data credits this run spent under autopilot. */
+  creditsUsed?: number;
 }
 
 export type ConnectionState = "disconnected" | "connected" | "locked";
@@ -87,7 +95,7 @@ export interface WorkspaceBudget {
 export type WorkspaceMilestone = "connected" | "firstSweep" | "activated" | "shared" | "invited";
 
 /** Heads-ups the agent raises on its own, between check-ins (spec 11 § Heads-ups). */
-export type NudgeKey = "loop_in_se" | "reply_watch" | "morning_lead";
+export type NudgeKey = "loop_in_se" | "morning_lead";
 
 export interface AgentNudge {
   id: string;
@@ -107,6 +115,10 @@ export interface Workspace {
   watchlist: string[];
   budget: WorkspaceBudget;
   credits: { data: number; ai: number };
+  /** Deals as the AE confirmed them at onboarding; the fixture list until then. */
+  deals?: PersonaDeal[];
+  /** Data credits autopilot spent on the persona's current day; resets each morning. */
+  autopilot?: { day: string; used: number };
   demoNow: number;
   runs: AgentRun[];
   nudges: AgentNudge[];
@@ -129,4 +141,6 @@ export interface SweepInput {
   budget: WorkspaceBudget;
   seenRunKeys: string[];
   mappedAccounts: string[];
+  /** Data credits autopilot may still spend today. */
+  autopilotLeft?: number;
 }

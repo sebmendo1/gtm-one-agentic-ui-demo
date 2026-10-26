@@ -2,10 +2,12 @@
 
 import { Button, IconButton, Tooltip } from "@mui/material";
 import { BellSnoozeIcon, QueueListIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { ArrowUpOnSquareIcon, ChevronDownIcon } from "@heroicons/react/20/solid";
+import { ArrowUpOnSquareIcon, CheckIcon, ChevronDownIcon, PaperAirplaneIcon, PaperClipIcon } from "@heroicons/react/20/solid";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { REPLY_ATTACHMENTS } from "@/lib/agents/fixtures";
+import { formatDayTime, formatTime } from "@/lib/agents/time";
 import type { AgentRun } from "@/lib/agents/types";
-import { nextStepFor } from "@/lib/agents/work";
+import { nextStepFor, REPLY_BUMP_MS } from "@/lib/agents/work";
 import { messagePlainText } from "@/lib/message";
 import { MessageBody } from "@/components/chat/MessageView";
 import { Markdown } from "@/components/chat/Markdown";
@@ -101,15 +103,51 @@ export function RunBody({ run, quiet }: { run: AgentRun; quiet: boolean }) {
 export interface RunHandlers {
   onOpenThread: () => void;
   onPrimary: () => void;
+  /** Copies the result when the primary action does something else (sending). */
+  onCopy?: () => void;
   onViewWork: () => void;
   onSnooze: () => void;
   onDismiss: () => void;
   onShare?: () => void;
 }
 
+/** The files the reply says it carries, so the draft never claims an attachment that isn't there. */
+export function Attachments() {
+  return (
+    <ul className="mt-3 flex flex-wrap gap-2" aria-label="Attachments">
+      {REPLY_ATTACHMENTS.map((file) => (
+        <li key={file.name} className="inline-flex h-8 items-center gap-1.5 rounded-gtm border border-gtm-border bg-gtm-bg px-2.5 text-meta">
+          <PaperClipIcon className="size-3.5 text-gtm-muted" aria-hidden />
+          <span className="font-medium text-gtm-text">{file.name}</span>
+          <span className="text-gtm-muted">{file.size}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** The activation moment: the reply went out, and the agent says what it will do next. */
+function SentConfirmation({ run }: { run: AgentRun }) {
+  return (
+    <div className="gtm-enter mt-4 flex gap-3 rounded-gtm-xl border border-gtm-success/40 bg-gtm-success/[0.06] p-4" role="status">
+      <span className="gtm-pop flex size-8 shrink-0 items-center justify-center rounded-full bg-gtm-success text-white">
+        <CheckIcon className="size-5" aria-hidden />
+      </span>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-gtm-text">
+          Sent to {run.entity.contact ?? run.entity.company} · {formatTime(run.sentAt!)}
+        </p>
+        <p className="mt-0.5 text-meta text-pretty text-gtm-secondary">
+          From your Gmail, with {REPLY_ATTACHMENTS.length} attachments. I&apos;ll watch for a reply and draft a bump {formatDayTime(REPLY_BUMP_MS)} if it&apos;s quiet.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /** What a sub-agent row shows when opened: its result, then one row of actions. */
 export function RunResult({ run, now, handlers }: { run: AgentRun; now: number; handlers: RunHandlers }) {
-  const { onOpenThread, onPrimary, onViewWork, onSnooze, onDismiss, onShare } = handlers;
+  const { onOpenThread, onPrimary, onCopy, onViewWork, onSnooze, onDismiss, onShare } = handlers;
   if (run.status === "needs_approval") {
     return (
       <div className="flex flex-col gap-3">
@@ -119,9 +157,12 @@ export function RunResult({ run, now, handlers }: { run: AgentRun; now: number; 
     );
   }
   const done = run.status === "done";
+  const sends = run.primaryAction.kind === "send_reply";
   return (
     <div>
       <RunBody run={run} quiet />
+      {sends && <Attachments />}
+      {done && run.sentAt && <SentConfirmation run={run} />}
       <footer className="mt-4 flex flex-wrap items-center gap-2">
         {done ? (
           onShare && (
@@ -130,9 +171,22 @@ export function RunResult({ run, now, handlers }: { run: AgentRun; now: number; 
             </Button>
           )
         ) : (
-          <Button variant="contained" color="primary" size="small" onClick={onPrimary}>
-            {run.primaryAction.label}
-          </Button>
+          <>
+            <Button
+              variant="contained"
+              color="primary"
+              size="small"
+              startIcon={sends ? <PaperAirplaneIcon className="size-4" /> : undefined}
+              onClick={onPrimary}
+            >
+              {run.primaryAction.label}
+            </Button>
+            {onCopy && (
+              <Button variant="outlined" color="inherit" size="small" className="border-gtm-border text-gtm-text" onClick={onCopy}>
+                {sends ? "Copy draft" : "Copy outreach note"}
+              </Button>
+            )}
+          </>
         )}
         <Button variant="outlined" color="inherit" size="small" className="border-gtm-border text-gtm-text" onClick={onOpenThread}>
           Open thread

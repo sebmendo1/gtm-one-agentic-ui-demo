@@ -5,6 +5,7 @@ import { ArrowPathIcon, ArrowTurnDownRightIcon, BookOpenIcon, CheckIcon, Documen
 import { SparklesIcon } from "@heroicons/react/16/solid";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { citedIds, messagePlainText, parseMessage, pendingSection, type AssistantMessage, type MessageFrame } from "@/lib/message";
+import { publicCoverage, useDebug } from "@/lib/debug";
 import { repairMarkdown } from "@/lib/stream/repair";
 import { Cite } from "./Cite";
 import { ComposedBlock } from "./ComposedBlock";
@@ -97,6 +98,7 @@ export function MessageFooter({ message, onRetry }: { message: AssistantMessage;
   const { send, busy } = useChatActions();
   const [copied, setCopied] = useState(false);
   const [sourcesOpen, setSourcesOpen] = useState(false);
+  const debug = useDebug();
   const cited = citedIds(message.markdown);
   const hasSources = cited.length > 0 || message.coverage.length > 0;
   return (
@@ -137,14 +139,16 @@ export function MessageFooter({ message, onRetry }: { message: AssistantMessage;
               {cited.length > 0 && <span className="text-gtm-muted tabular-nums">{cited.length}</span>}
             </button>
           )}
-          <span className="ml-auto flex items-center gap-2 pl-2 text-xs max-sm:ml-1.5 max-sm:w-full max-sm:pl-0">
-            <span className="flex items-center gap-1">
-              <SparklesIcon className="size-3.5" />
-              {message.writer.kind === "gemini" ? `Written by Gemini (${message.writer.model})` : (message.writer.note ?? "Template reply")}
+          {debug && (
+            <span className="ml-auto flex items-center gap-2 pl-2 text-xs max-sm:ml-1.5 max-sm:w-full max-sm:pl-0">
+              <span className="flex items-center gap-1">
+                <SparklesIcon className="size-3.5" />
+                {message.writer.kind === "gemini" ? `Written by Gemini (${message.writer.model})` : (message.writer.note ?? "Template reply")}
+              </span>
+              {message.source === "fixtures" && <Chip size="small" label="Demo fixtures" variant="outlined" className="h-5 text-caption" />}
+              {message.source === "gtm-cli" && <Chip size="small" label="Live · GTM CLI" color="success" variant="outlined" className="h-5 text-caption" />}
             </span>
-            {message.source === "fixtures" && <Chip size="small" label="Demo fixtures" variant="outlined" className="h-5 text-caption" />}
-            {message.source === "gtm-cli" && <Chip size="small" label="Live · GTM CLI" color="success" variant="outlined" className="h-5 text-caption" />}
-          </span>
+          )}
         </div>
 
         {hasSources && (
@@ -160,7 +164,7 @@ export function MessageFooter({ message, onRetry }: { message: AssistantMessage;
               {message.coverage.length > 0 && (
                 <ul className={`flex flex-col gap-1.5 break-words text-gtm-secondary ${cited.length > 0 ? "mt-3" : ""}`}>
                   {message.coverage.map((line) => (
-                    <li key={line}>{line}</li>
+                    <li key={line}>{debug ? line : publicCoverage(line)}</li>
                   ))}
                 </ul>
               )}

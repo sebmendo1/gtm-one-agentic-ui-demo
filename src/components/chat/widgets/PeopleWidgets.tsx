@@ -139,33 +139,30 @@ export function CommitteeWidget() {
 
 function CopyRow({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {
   const [copied, setCopied] = useState(false);
-  const revealed = !/not returned/i.test(value);
   return (
     <div className="flex items-center gap-2 text-sm">
       <span className="flex shrink-0 text-gtm-muted [&_svg]:size-4">{icon}</span>
-      <span className={`min-w-0 break-all ${revealed ? "" : "text-gtm-muted"}`}>{value}</span>
-      {revealed && (
-        <Tooltip title={copied ? "Copied" : `Copy ${label}`}>
-          <IconButton
-            size="small"
-            aria-label={`Copy ${label}`}
-            onClick={async () => {
-              if (await copyText(value)) {
-                setCopied(true);
-                setTimeout(() => setCopied(false), 1500);
-              }
-            }}
-          >
-            {copied ? <CheckIcon className="size-4.5" /> : <DocumentDuplicateIcon className="size-4.5" />}
-          </IconButton>
-        </Tooltip>
-      )}
+      <span className="min-w-0 break-all">{value}</span>
+      <Tooltip title={copied ? "Copied" : `Copy ${label}`}>
+        <IconButton
+          size="small"
+          aria-label={`Copy ${label}`}
+          onClick={async () => {
+            if (await copyText(value)) {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1500);
+            }
+          }}
+        >
+          {copied ? <CheckIcon className="size-4.5" /> : <DocumentDuplicateIcon className="size-4.5" />}
+        </IconButton>
+      </Tooltip>
     </div>
   );
 }
 
 export function ContactWidget() {
-  const { data, componentSources } = useFrame();
+  const { data, componentSources, job } = useFrame();
   const { send, busy, hostHasPrimary } = useChatActions();
   const quiet = useContext(QuietEvidenceContext);
   const p = data.contact;
@@ -173,7 +170,9 @@ export function ContactWidget() {
   const rows = [
     { icon: <EnvelopeIcon />, value: p.email, label: "email" },
     { icon: <PhoneIcon />, value: p.phone, label: "phone" },
-  ].filter((row) => !quiet || (row.value && !/not returned/i.test(row.value)));
+  ].filter((row) => row.value && !/not returned/i.test(row.value));
+  // When the message already is the email (or a card owns the next step), a second draft would contradict it.
+  const offerDraft = !quiet && !hostHasPrimary && job !== "draft";
   return (
     <WidgetCard
       eyebrow="Contact"
@@ -191,10 +190,10 @@ export function ContactWidget() {
       }
       sources={componentSources.contact}
       action={
-        !quiet && <Button
+        offerDraft && <Button
           size="small"
-          variant={hostHasPrimary ? "outlined" : "contained"}
-          color={hostHasPrimary ? "inherit" : "primary"}
+          variant="contained"
+          color="primary"
           disabled={busy}
           startIcon={<EnvelopeIcon className="size-4" />}
           onClick={() => send(`Draft a short first email to ${p.name}${p.company ? ` at ${p.company}` : ""}`)}>

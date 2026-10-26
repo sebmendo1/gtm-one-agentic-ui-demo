@@ -1,5 +1,5 @@
-import { CALENDAR_EVENTS, DEMO_MORNING_MS, INBOX_THREADS, accountLabel } from "./fixtures";
-import { formatDayTime, relativeMeeting } from "./time";
+import { CALENDAR_EVENTS, DEMO_MORNING_MS, accountLabel } from "./fixtures";
+import { relativeMeeting } from "./time";
 import type { AgentNudge, AgentRun, NudgeKey, SourceKind, Workspace } from "./types";
 import { isVisible } from "./work";
 
@@ -27,16 +27,7 @@ function meetingPrepRun(ws: Workspace): AgentRun | undefined {
   return ws.runs.find((r) => r.agentId === "meeting_prep" && r.trigger.meta?.eventId === "cal-snowflake-expansion" && isVisible(r));
 }
 
-function replyRun(ws: Workspace): AgentRun | undefined {
-  return ws.runs.find((r) => r.agentId === "follow_up_nudge" && isVisible(r));
-}
-
 const SNOWFLAKE_EVENT = CALENDAR_EVENTS.find((e) => e.id === "cal-snowflake-expansion")!;
-const STRIPE_EVENT = CALENDAR_EVENTS.find((e) => e.id === "cal-stripe-followup")!;
-const ALEX_THREAD = INBOX_THREADS.find((t) => t.id === "mail-stripe-demo")!;
-
-/** Two days before the Stripe call at 9:00 AM: when a bump still gives Alex time to answer. */
-export const REPLY_BUMP_MS = STRIPE_EVENT.startMs - 2 * 24 * MS_HOUR - 5 * MS_HOUR;
 
 function hoursUntil(ms: number, now: number): string {
   const h = Math.max(1, Math.round((ms - now) / MS_HOUR));
@@ -60,21 +51,6 @@ export function nudgeContent(nudge: AgentNudge, ws: Workspace): NudgeContent {
         secondary: "Not now",
         accepted: `Shared with ${first}. I'll flag it if he adds questions before 10:00 AM.`,
         dismissed: "Okay. The brief stays private to you.",
-        runId: run?.id,
-      };
-    }
-    case "reply_watch": {
-      const run = replyRun(ws);
-      return {
-        headline: `I'll follow up with ${ALEX_THREAD.fromName.split(" ")[0]} if the thread goes quiet`,
-        noticing: `Planning a follow-up on ${ALEX_THREAD.fromName}'s thread…`,
-        why: `Gmail · Stripe follow-up ${formatDayTime(STRIPE_EVENT.startMs)}`,
-        source: "gmail",
-        body: `Since you're replying to **${ALEX_THREAD.fromName}**, I'll keep an eye on the thread. If there's no answer by **${formatDayTime(REPLY_BUMP_MS)}**, I'll draft a short bump so it lands before your Stripe call.`,
-        primary: "Sounds good",
-        secondary: "Don't follow up",
-        accepted: `Watching ${ALEX_THREAD.fromName}'s thread. Bump drafts ${formatDayTime(REPLY_BUMP_MS)} if it's quiet.`,
-        dismissed: `Okay. I won't follow up with ${ALEX_THREAD.fromName.split(" ")[0]}.`,
         runId: run?.id,
       };
     }
@@ -103,7 +79,7 @@ function has(ws: Workspace, key: NudgeKey): boolean {
   return ws.nudges.some((n) => n.key === key);
 }
 
-/** The heads-up the agent would raise next on its own, if any. Event-driven ones (reply_watch) are raised by the action itself. */
+/** The heads-up the agent would raise next on its own, if any. */
 export function nextIdleNudge(ws: Workspace): NudgeKey | null {
   if (!ws.lastSweepAt || ws.nudges.some((n) => n.status === "new" && n.at === ws.demoNow)) return null;
   const prep = meetingPrepRun(ws);
@@ -114,13 +90,3 @@ export function nextIdleNudge(ws: Workspace): NudgeKey | null {
   return null;
 }
 
-export function canRaise(ws: Workspace, key: NudgeKey): boolean {
-  return !has(ws, key);
-}
-
-/** The follow-up the agent committed to, once the AE agreed. */
-export function scheduledFollowUp(ws: Workspace): { title: string; detail: string } | null {
-  const watch = ws.nudges.find((n) => n.key === "reply_watch" && n.status === "accepted");
-  if (!watch) return null;
-  return { title: `Watching for ${ALEX_THREAD.fromName}'s reply`, detail: `Bump drafts ${formatDayTime(REPLY_BUMP_MS)} if quiet` };
-}

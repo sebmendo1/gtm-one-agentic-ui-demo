@@ -7,10 +7,12 @@ export async function runSweep(input: SweepInput, emit: (event: AgentStreamEvent
   const candidates = detectTriggers(input);
   emit({ type: "activity", label: "Checking Calendar, Gmail and ZoomInfo signals" });
 
+  let autopilotLeft = input.autopilotLeft ?? input.budget.dataCreditsPerDay;
   for (const candidate of candidates) {
     const target = candidate.entity.company ?? candidate.entity.contact ?? "your accounts";
     emit({ type: "activity", label: `${agentDisplayName(candidate.agentId)} · ${target}` });
-    const run = await runAgentCandidate(candidate, input, crypto.randomUUID());
+    const run = await runAgentCandidate(candidate, { ...input, autopilotLeft }, crypto.randomUUID());
+    autopilotLeft -= run.creditsUsed ?? 0;
     emit({ type: "agent_run", run });
   }
   emit({ type: "done" });
@@ -27,6 +29,7 @@ export function sweepInputFromBody(body: unknown): SweepInput | null {
   const budget = (b.budget ?? {}) as SweepInput["budget"];
   return {
     now,
+    autopilotLeft: typeof b.autopilotLeft === "number" ? Math.max(0, Math.min(50, b.autopilotLeft)) : undefined,
     watchlist,
     seenRunKeys,
     mappedAccounts,

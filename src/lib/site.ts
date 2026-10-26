@@ -29,7 +29,7 @@ export function homeMarkdown(): string {
 
 > ${SITE.description}
 
-This is a demo built on ZoomInfo GTM AI. On this deployment every answer uses demo data for Snowflake, Stripe, Salesforce, Jordan Lee and Alex Chen, so no ZoomInfo credits are spent.
+This is a demo built on ZoomInfo GTM AI. On this deployment every answer uses demo data for Snowflake, Stripe, Datadog, Jordan Lee and Alex Chen, so no ZoomInfo credits are spent.
 
 ## What you can ask
 

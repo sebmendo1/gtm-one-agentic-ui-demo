@@ -3,7 +3,7 @@ import type { FixtureBundle } from "../gtm/fixtures";
 import type { FollowUp } from "../message";
 import type { EntityRef } from "../spec";
 
-export const DEMO_ACCOUNTS = ["Snowflake", "Stripe", "Salesforce"];
+export const DEMO_ACCOUNTS = ["Snowflake", "Stripe", "Datadog"];
 
 /** Suggested next turns, built from the job and evidence (no model call). */
 export function followUpsFor(job: GtmJob | null, entity: EntityRef, data: FixtureBundle, notFound: boolean): FollowUp[] {

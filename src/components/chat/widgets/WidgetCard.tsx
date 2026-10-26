@@ -2,6 +2,7 @@
 
 import { Card, CardContent, Chip, Typography } from "@mui/material";
 import { useContext, type ReactNode } from "react";
+import { useDebug } from "@/lib/debug";
 import { SourceChips } from "../Cite";
 import { QuietEvidenceContext, useFrame } from "../context";
 
@@ -22,6 +23,7 @@ export function WidgetCard({
 }) {
   const frame = useFrame();
   const quiet = useContext(QuietEvidenceContext);
+  const debug = useDebug();
   return (
     <Card className="gtm-enter w-full">
       <CardContent className="p-4 last:pb-4 sm:p-5 sm:last:pb-5">
@@ -30,7 +32,7 @@ export function WidgetCard({
           <div className="min-w-0 flex-auto">
             <div className="flex items-center gap-2">
               <span className="gtm-eyebrow whitespace-nowrap">{eyebrow}</span>
-              {frame.source === "fixtures" && !quiet && (
+              {debug && frame.source === "fixtures" && !quiet && (
                 <Chip size="small" label="Demo data" variant="outlined" className="h-5 text-caption text-gtm-muted" />
               )}
             </div>

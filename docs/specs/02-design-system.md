@@ -158,7 +158,7 @@ Components in `src/components/agent/`:
 | `RunResult` | A run's quiet result plus its action row (primary, Open thread, View N tasks, Snooze, Not useful); `ApprovalSummary` for runs that need approval |
 | `SubAgentSheet` | Right sheet with one specialist's transcript: assignment, task timeline with sources, evidence ids and commands, cited result |
 | `Onboarding` | First run: segmented progress bar, two-tone step heading, live agent preview panel from `lg` (spec 11 § First run) |
-| `QuietEvidenceContext` | Set by `RunBody` in the hub; hides citation chips, widget source rows and the Demo data tag |
+| `QuietEvidenceContext` | Set by `RunBody` in the hub; hides citation chips and widget source rows (the Demo data tag is debug-only everywhere) |
 | `SweepError` | Inline sweep failure with Retry |
 | `WorkPanel` | Right sidebar on Go-to-agent only: goal, needs you, up next, in progress, done, watching, setup |
 | `DayDivider` | “Today” / “Yesterday” in hub timeline |

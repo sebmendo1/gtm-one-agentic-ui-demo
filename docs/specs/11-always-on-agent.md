@@ -20,7 +20,7 @@ Mid-market AEs run 15–25 external meetings per week and rarely prep in time. R
 
 The whole product speaks to one job: a mid-market AE getting deals to close. Nothing in the chrome is for operators or builders.
 
-- **Book of deals.** Elena's three deals (`PERSONA_DEALS`, spec 05) are the spine of the experience. She confirms them at onboarding, and because Salesforce is locked they are labeled "Self-reported until Salesforce connects". The work panel's goal card lists each deal with stage, amount and close date under the goal progress. The work panel names the deal behind each piece of work.
+- **Book of deals.** Elena's three deals (`PERSONA_DEALS`, spec 05) are the spine of the experience. She confirms them at onboarding (each row has inline Edit for amount and stage), and because Salesforce is locked they are labeled "Self-reported until Salesforce connects" (after the admin invite: "Self-reported · invite sent, waiting on your Salesforce admin"). Edits persist in `workspace.deals`, and the goal count is derived from deals in Commit. Salesforce is only ever the CRM integration; the third deal is Datadog. The work panel's goal card lists each deal with stage, amount and close date under the goal progress. The work panel names the deal behind each piece of work.
 - **Language.** Copy talks about deals, meetings, buyers and next steps, not "accounts or tasks" or "GTM jobs". Placeholders: hub "Ask about a deal, a meeting or a buyer…", thread "Ask about this deal, a buyer or your next step…".
 - **Hub suggestions** come from her own week, not a fixed list: prep the next external meeting ("Prep me for Snowflake at 10:00 AM"), reply to the oldest unanswered buyer email ("Draft my reply to Alex Chen"), "Which deals need me?", and "Watch {account}" for a deal account that isn't watched yet.
 - **"Which deals need me?"** (also "my deals", "pipeline", "my forecast") is a local intent. It lists each deal with stage, amount, close date and next step, and notes what the agent has ready or needs approved for it. It also notes that the deals are self-reported.
@@ -33,9 +33,9 @@ The whole product speaks to one job: a mid-market AE getting deals to close. Not
 | Moment | Definition |
 |--------|------------|
 | **Activation** | User completes a proactive card’s primary action (copy talk track or copy draft) on a card the agent produced unprompted. |
-| **Growth — share** | Agent suggests sharing the brief with an internal attendee on the calendar invite (SE); `/share#…` read-only artifact with “Get your own Go-to-agent”. |
-| **Growth — CRM** | Locked Salesforce source + “Invite your admin” unlocks pipeline-aware Deal Watch (copy only in PoC). |
-| **Growth — credits** | Credit meter in sidebar; autopilot budget set at onboarding. |
+| **Growth — share** | Agent suggests sharing the brief with an internal attendee on the calendar invite (Sam Ortiz, Northwind SE). The share sheet offers one-tap **Email Sam**, **Send in Slack** (both mocked) and **Copy link**; each logs a hub line. `/share#…` is a read-only artifact whose **Start free** opens `/?new=1`, a fresh workspace for that page load (storage keys suffixed `:guest-…`), so the recipient onboards from scratch and the sender's workspace is untouched. |
+| **Growth — CRM** | Locked Salesforce source + “Invite your admin” unlocks pipeline-aware Deal Watch (copy only in PoC). After the invite, the sidebar reads "Salesforce · Invite sent, waiting on admin". |
+| **Growth — credits** | Credit meter in sidebar with "Used N of your M daily autopilot credits". Every credit-spending lookup (company enrich, signals) costs one data credit: within the daily autopilot budget it runs and is deducted (940 → 936 on the first check-in); over budget, or with autopilot off, the card asks first. Each dispatch states what it spent. Approving paid research in a thread deducts its estimate. |
 
 ## Demo clock
 
@@ -92,7 +92,7 @@ A 320px right panel summarizing all pending and finished work. It appears only o
 |---------|----------|
 | **Goal** | Quarter goal and progress (fixture) |
 | **Needs you** | Approvals and ready cards not yet acted on, each with the next step ("Review before 10:00 AM", "Reply to Alex Chen", "Approve ~2 data credits") |
-| **Up next** | Next external meetings with prep status: Brief ready / Prepping / Preps 24h before |
+| **Up next** | Next external meetings with prep status: Brief ready / Prepping on next check / "Brief preps Thu 2:00 PM, a day ahead" |
 | **In progress** | The running sweep step or the hub question being researched; otherwise "Idle · last checked {time}" |
 | **Done** | Completed cards and growth milestones (shared, invited) |
 | **Watching** | Watched accounts |
@@ -100,7 +100,7 @@ A 320px right panel summarizing all pending and finished work. It appears only o
 
 Clicking a card-backed row scrolls the timeline to that card and highlights it briefly; on the drawer it also closes the drawer.
 
-Open heads-ups sit at the top of **Needs you**, marked with a bolt icon. A follow-up the agent committed to ("Watching for Alex Chen's reply · Bump drafts Wed 9:00 AM if quiet") shows under **In progress**.
+Open heads-ups sit at the top of **Needs you**, marked with a bolt icon. The follow-up the agent committed to when the reply was sent ("Watching for Alex Chen's reply · Bump drafts Wed 9:00 AM if it's quiet") shows under **In progress**.
 
 ## Collapsible sidebars
 
@@ -114,11 +114,59 @@ Besides the scheduled check-ins, the agent raises **heads-ups** on its own: thin
 
 | Heads-up | Raised when | Primary action |
 |----------|-------------|----------------|
-| **Loop in your SE** | 4s after the evening check-in goes quiet: the Snowflake brief is ready, Sam Ortiz is on the invite, and nothing has been shared | Share brief with Sam (opens the share sheet; resolves on copy) |
-| **I'll follow up** | 1.2s after she copies the Alex Chen draft | Sounds good: the agent commits to drafting a bump Wed 9:00 AM if Alex stays quiet, shown in In progress |
+| **Loop in your SE** | 4s after the evening check-in goes quiet: the Snowflake brief is ready, Sam Ortiz is on the invite, and nothing has been shared | Share brief with Sam (opens the share sheet; resolves once sent by email, Slack or link) |
 | **Before your meeting** | 4s after the morning check-in goes quiet | Open the brief: focuses the Snowflake brief, which now leads with the overnight intent spike |
 
 Each heads-up fires once per workspace. Idle heads-ups wait while a sweep or a research turn runs. Presenter controls add **Send a heads-up now**, which fires the next eligible one without the wait.
+
+## Activation: Approve & send
+
+The Alex Chen reply is the activation moment. Its card shows the draft, then attachment chips for what the draft promises (**Northwind demo deck.pdf** 4.2 MB, **Pilot one-pager.pdf** 310 KB). The primary action is **Approve & send** (paper-plane icon); **Copy draft** is secondary. Sending is simulated and nothing leaves the browser.
+
+On send, the card turns into a green confirmation: "Sent to Alex Chen · 4:30 PM. From your Gmail, with 2 attachments. I'll watch for a reply and draft a bump Wed 9:00 AM if it's quiet." A toast says "Sent to Alex Chen". The item moves to **Done** ("Reply sent to Alex Chen · Sent Mon 4:30 PM"), and **In progress** gains "Watching for Alex Chen's reply · Bump drafts Wed 9:00 AM if it's quiet". The Connect step says up front that nothing sends without her OK.
+
+The contact card's **Draft email** never appears on a message that already is a draft, or on agent cards, so it can't contradict the reply.
+
+## While you were away
+
+The morning check-in posts as a Go-to-agent message with a **While you were away** pill: "Overnight I kept an eye on the accounts you watch. Two signals came in from ZoomInfo." Each Deal Watch signal is its own card:
+
+- **Header:** "ZoomInfo signal · 3:40 AM".
+- **Body:** "Snowflake · Intent spike on Revenue Intelligence (88 → 91)", then what it means: "That lines up with your expansion pitch. I added it to your brief for today at 10:00 AM." For a meeting more than a day out, the promise is future tense: "I'll work it into your brief for Fri 2:00 PM."
+- **Actions:** **Add to talk track** (the card settles to "Added to your Snowflake talk track" and moves to Done), **Dismiss**, and **View N tasks**.
+
+The overnight jump is reachable without presenter controls. Once the evening check-in is in and the hub is idle, the timeline ends with "I'll check again at 7:00 AM · **See tomorrow morning**".
+
+## Counts, dates and labels
+
+- **One badge count.** The header's Agent work badge, the sidebar's Go-to-agent badge and the rail all show `needsYouCount`: ready or approval cards plus open heads-ups.
+- **Dispatch sentence.** While specialists land, the sentence stays "Checking your calendar, inbox and accounts, and handing the work to specialists." The final count is stated once the check-in finishes.
+- **Dates.** Dates render as "Oct 3" (`humanDate`), never ISO. The follow-up trigger reads "Alex Chen at Stripe emailed Oct 3, 23 days ago — still no reply". Up next labels prep times explicitly ("Brief preps Thu 2:00 PM, a day ahead"); the Stripe call is Fri 2:00 PM everywhere.
+- **Contact rows.** Rows without a value ("Not returned") are omitted, never shown with no action.
+- **Developer labels.** "Written by Gemini…", "Demo fixtures", "Demo data" and the fixture-emulator coverage line are hidden by default. `?debug=1` shows them for the tab and `?debug=0` hides them again.
+
+## Task drawer
+
+Each task leads with what it did and where: "Read Alex Chen's thread in Gmail", "Looked up Alex Chen in ZoomInfo", "Drafted the reply from the thread and history". Under it come the result, then a confidence line from a fixed rule, then the cost ("1 data credit" or "Free"):
+
+| Task | Confidence line |
+|------|-----------------|
+| Read of her own Gmail or calendar | "Direct from your Gmail" / "Direct from your calendar" |
+| ZoomInfo result backed by two or more records | "High confidence · N sources" |
+| ZoomInfo result backed by one record | "Confirmed · 1 source" |
+| The write-up | "Based on N findings above" |
+| Empty or waiting | "Nothing on record" / "Waiting on your approval" |
+
+Raw `gtm …` commands and evidence ids sit behind a collapsed **Show technical details** toggle.
+
+## Setup checklist
+
+Every incomplete Setup item is clickable and goes to the action that completes it:
+
+- **First check-in:** runs the check-in now.
+- **Act on a brief:** focuses the Alex Chen reply.
+- **Share with a teammate:** opens the share sheet on the Snowflake brief.
+- **Invite your Salesforce admin:** sends the invite.
 
 ## Hub and spoke
 
@@ -134,8 +182,8 @@ Full-screen split layout, no numbered stepper. The left column holds the brand m
 
 | Step | Heading | Controls | Preview row it fills |
 |------|---------|----------|----------------------|
-| 1 | Welcome, Elena. / Here's the quarter you're working. | Her three deals in one list (amount · stage · close date), the Q4 goal, and the self-reported note | Deals: "3 open · $252k pipeline" |
-| 2 | Connect your day. / Calendar and email, read-only. | Google Workspace row with Connect (simulated); the primary button reads **Connect Google** until connected. Salesforce is a dashed, locked row | Meetings and Inbox ("Alex Chen waiting 23 days for a reply") |
+| 1 | Welcome, Elena. / Confirm the deals you're working this quarter. | Her three deals in one list (amount · stage · close date) with inline Edit (amount, stage), the Q4 goal, and the note "From your signup answers. Edit anything that's off; Salesforce replaces this list once your admin connects it." | Deals: "3 open · $252k pipeline" |
+| 2 | Connect your day. / I read your calendar and inbox. Nothing sends without your OK. | Google Workspace row with Connect (simulated); the primary button reads **Connect Google** until connected. Salesforce is a dashed, locked row | Meetings and Inbox ("Alex Chen waiting 23 days for a reply") |
 | 3 | Choose accounts to watch. / I'll post buying signals for these overnight. | Selectable account rows (stage · next meeting) with a checkbox; Continue needs at least one | Watching |
 | 4 | Set your autopilot. / What I can spend without asking. | A switch for data-credit autopilot and a daily limit slider (1–25); AI research always asks | Autopilot |
 
@@ -158,10 +206,11 @@ Full-screen split layout, no numbered stepper. The left column holds the brand m
 ## Walkthrough (Ryan)
 
 1. Frame AE + Google (not CRM).  
-2. First run &lt;2 min: role, simulated Google connect, confirm accounts, budget, streamed sweep.  
-3. Pause: the agent raises "Sam hasn't seen tomorrow's Snowflake brief" unprompted. Share it. Copy the Alex Chen draft and it offers to follow up on its own.  
-4. Simulate overnight → new signal cards, then a heads-up before the Snowflake review.  
-5. Activation + share + CRM invite + credits.
+2. First run &lt;2 min: confirm (or edit) deals, simulated Google connect, choose accounts, budget, streamed sweep (credits 940 → 936).  
+3. Pause: the agent raises "Sam hasn't seen tomorrow's Snowflake brief" unprompted. **Approve & send** the Alex Chen reply (activation), then **Email Sam** the brief (growth).  
+4. Open the shared brief and click **Start free**: fresh onboarding in its own workspace.  
+5. Back in the hub: invite the Salesforce admin, then **See tomorrow morning** for the "While you were away" signals and the pre-meeting heads-up.  
+6. **Restart demo** from the sidebar.
 
 ## Acceptance
 
